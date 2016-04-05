@@ -6,3 +6,4 @@ target/
 .project
 .ensime
 .settings
+.ensime_cache/
