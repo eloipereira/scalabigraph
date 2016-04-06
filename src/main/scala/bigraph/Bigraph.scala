@@ -1,16 +1,19 @@
+package bigraph
+
 import scalaz._
 import scalaz.Tree._
-import Scalaz._
-
 
 sealed trait Region{
   def id: Int
 }
 
 object Region{
-  def region(i: => Int): Region = new Region{
+  def apply(i: => Int): Region = new Region{
     lazy val id = i
+    override def toString = "#" + i
   }
+
+  def unapply(r: Region): Option[Int] = Some(r.id)
 }
 
 sealed trait Site{
@@ -18,9 +21,10 @@ sealed trait Site{
 }
 
 object Site{
-  def site(i: => Int): Site = new Site{
+  def apply(i: => Int) = new Site{
     lazy val id = i
   }
+  def unapply(s: Site): Option[Int] = Some(s.id)
 }
 
 sealed trait PlaceGraph[A]{
@@ -29,15 +33,19 @@ sealed trait PlaceGraph[A]{
 }
 
 object PlaceGraph extends PlaceGraphFunctions{
-  def apply[A](n: => A): PlaceGraph[A] = ion(n)
-}
-
-trait PlaceGraphFunctions {
-  def place[A](r: Region, forest: => Stream[Tree[A \/ Site]]): PlaceGraph[A] = new PlaceGraph[A]{
+  def apply[A](r: Region, forest: => Stream[Tree[A \/ Site]]): PlaceGraph[A] = new PlaceGraph[A]{
     lazy val region = r
     lazy val graph = forest
     override def toString = "<placeGraph>"
   }
-  implicit val r: Region = Region.region(0)
-  def ion[A](n: => A)(implicit r: Region): PlaceGraph[A] = place(r,Stream(Leaf(n.left)))
+  def unapply[A](p: PlaceGraph[A]): Option[(Region,Stream[Tree[A \/ Site]])] = Some((p.region,p.graph))
+}
+
+trait PlaceGraphFunctions {
+  implicit val r: Region = Region(0)
+  implicit val s: Site = Site(0)
+  def empty[A](implicit r: Region): PlaceGraph[A] = PlaceGraph(r,Stream.empty)
+  def atom[A](n: => A)(implicit r: Region): PlaceGraph[A] = PlaceGraph(r,Stream(Leaf(-\/(n))))
+  def ion[A](n: => A)(implicit r: Region, s: Site): PlaceGraph[A] = PlaceGraph(r,Stream(Node(-\/(n), Stream(Leaf(\/-(s))))))
+  def compose[A](p0: PlaceGraph[A], p1: PlaceGraph[A]): PlaceGraph[A] = ???
 }
