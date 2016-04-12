@@ -14,3 +14,5 @@ resolvers ++= Seq(
 libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.2.2"
 
 scalacOptions += "-deprecation"
+
+initialCommands in console := "import bigraph._, PlaceGraph._"
