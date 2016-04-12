@@ -18,6 +18,7 @@ object Site{
 
 sealed trait PlaceGraph[A]{
   def forest: Stream[Tree[Site \/ A]]
+  //def drawPlaceGraph: String = forest.map(_.drawTree).foldLeft("")(_+_)
 }
 
 object PlaceGraph extends PlaceGraphFunctions{
@@ -34,5 +35,13 @@ trait PlaceGraphFunctions {
   def atom[A](n: => A): PlaceGraph[A] = PlaceGraph(Stream(Leaf(\/-(n))))
   def ion[A](n: => A)(implicit s: Site): PlaceGraph[A] = PlaceGraph(Stream(Node(\/-(n),Stream(Leaf(-\/(s))))))
   def juxtaposition[A](p0: PlaceGraph[A], p1: PlaceGraph[A]): PlaceGraph[A] = PlaceGraph(p0.forest #::: p1.forest)
-  def composition[A](p0: PlaceGraph[A], p1: PlaceGraph[A]): PlaceGraph[A] = ???
+  def composition[A](p0: PlaceGraph[A], p1: PlaceGraph[A]): PlaceGraph[A] = {
+    PlaceGraph(
+      p1.forest map ((t: Tree[Site \/ A]) => t flatMap ((n: Site \/ A) => n match {
+        case -\/(Site(i)) => p0.forest(i)
+        case _ => Leaf(n)
+      }
+      )
+    ))
+  }
 }
