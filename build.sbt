@@ -11,7 +11,10 @@ resolvers ++= Seq(
   "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 )
 
-libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.2.2"
+libraryDependencies ++= Seq(
+  "org.scalaz" %% "scalaz-core" % "7.2.2",
+  "org.scalacheck" %% "scalacheck" % "1.13.0" % "test"
+)
 
 scalacOptions += "-deprecation"
 
