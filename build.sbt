@@ -8,11 +8,10 @@ resolvers ++= Seq(
   DefaultMavenRepository,
   "My bitbucket maven releases repo" at "https://bitbucket.org/eloipereira/maven-repo-releases/raw/master",
   "My bitbucket maven snapshots repo" at "https://bitbucket.org/eloipereira/maven-repo-snapshots/raw/master",
-  "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
-)
+  "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/")
 
 libraryDependencies ++= Seq(
-  "org.scalaz" %% "scalaz-core" % "7.2.2",
+  "org.scalaz" %% "scalaz-core" % "7.3.0-M2",
   "org.scalacheck" %% "scalacheck" % "1.13.0" % "test"
 )
 
