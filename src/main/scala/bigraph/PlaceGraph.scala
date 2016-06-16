@@ -57,7 +57,12 @@ object Site {
 
   def juxtapose[U >: A](p: PlaceGraph[U]): PlaceGraph[U] = {
     val currentForest: Stream[Stream[Tree[Site \/ U]]] = self.forest
-    val rs = currentForest #::: {if (self.sites.isEmpty) {p.forest} else {incrementSites(p)(self.sites.max.id).forest}}
+    val rs = currentForest #::: {
+      if (self.sites.isEmpty || p.sites.isEmpty){
+        p.forest
+      } else {
+        incrementSites(p)(self.sites.max.id).forest}
+      }
     PlaceGraph(rs)
   }
 
@@ -131,8 +136,8 @@ case class Atom[A](n:A) extends PlaceGraph[A]  with PlaceGraphFunctions{
    def forest[U >: A]:Stream[Stream[Tree[Site \/ U]]] = atom(n).forest
 }
 
-case object Empty extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
-   def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = empty.forest
+case object Unit extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
+   def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = unit.forest
 }
 
 case object Permute extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
@@ -150,7 +155,22 @@ trait PlaceGraphFunctions{
   private def leaf[A](n: => A): Tree[Site\/A] = Leaf(\/-(n))
   private def nodeWithSite[A](n: => A): Tree[Site\/A] = Node(\/-(n),Stream(leaf0))
 
-  def empty[A]: PlaceGraph[A] = new PlaceGraph[A]{
+  def id[A](m: Int): PlaceGraph[A] = {
+    m match {
+      case 0 => PlaceGraph(Stream.empty)
+      case 1 => PlaceGraph(Stream(Stream(leaf0)))
+      case _ => id(m-1) juxtapose id(1)
+    }
+  }
+
+  def merge[A](n: Int):PlaceGraph[A] = {
+    n match {
+      case 0 => unit
+      case _ => join compose (merge(n-1) juxtapose id(1))
+    }
+  }
+
+  def unit[A]: PlaceGraph[A] = new PlaceGraph[A]{
      def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream.empty)
   }
   def permute[A]: PlaceGraph[A] = new PlaceGraph[A]{
