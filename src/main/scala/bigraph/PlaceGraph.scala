@@ -58,32 +58,38 @@ object Site {
   def juxtapose[U >: A](p: PlaceGraph[U]): PlaceGraph[U] = {
     val currentForest: Stream[Stream[Tree[Site \/ U]]] = self.forest
     val rs = currentForest #::: {
-      if (self.sites.isEmpty || p.sites.isEmpty){
+      if (self.sites.isEmpty || p.sites.isEmpty) {
         p.forest
+      } else if(self.sites.max.id >= p.sites.min.id) {
+        incrementSites(p)(self.sites.max.id+1).forest
       } else {
-        incrementSites(p)(self.sites.max.id).forest}
+        p.forest
       }
+    }
     PlaceGraph(rs)
   }
 
   private def incrementSites[U >: A](p: PlaceGraph[U])(inc: Int): PlaceGraph[U] = {
-    if (p.sites.max.id > inc) {p} else {
-      val rs = p.forest.map((region:Stream[Tree[Site \/ U]]) =>
-        region.map(tree =>
-          tree.map(n =>
-            n match {
-              case -\/(Site(i)) => -\/(Site(i+inc+1))
-              case n => n
-            }
-          )
-        )
-      )
-      PlaceGraph(rs)
-    }
+     p match {
+       case p if p.sites.isEmpty => p
+       case _ => {
+         val rs = p.forest.map((region:Stream[Tree[Site \/ U]]) =>
+         region.map(tree =>
+           tree.map(n =>
+             n match {
+               case -\/(Site(i)) => -\/(Site(i+inc))
+               case n => n
+             }
+           )
+         )
+       )
+       PlaceGraph(rs)}
+     }
   }
 
 def compose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = {
-  case p:PlaceGraph[U] if p.outerFace == self.innerFace => PlaceGraph(
+  case p:PlaceGraph[U] if p.outerFace == self.innerFace =>
+  PlaceGraph(
     forest.map((region:Stream[Tree[Site \/ U]]) =>
       region.flatMap(t => t match {
         case Leaf(-\/(Site(i))) => p.forest(i)
@@ -123,7 +129,7 @@ private def composeRegionsInSites[U >: A](tree: Tree[Site \/ U],pg: PlaceGraph[U
 object PlaceGraph extends PlaceGraphFunctions {
    def apply[A](s: Stream[Stream[Tree[Site \/ A]]]): PlaceGraph[A] = new PlaceGraph[A]{
      def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = s.asInstanceOf[Stream[Stream[Tree[Site \/ U]]]]
-     override def toString = "<placeGraph>"
+     override def toString = drawPlaceGraph
    }
    def unapply[A](pg: PlaceGraph[A]): Option[Stream[Stream[Tree[Site \/ A]]]] = Some(pg.forest)
  }
@@ -159,7 +165,7 @@ trait PlaceGraphFunctions{
     m match {
       case 0 => PlaceGraph(Stream.empty)
       case 1 => PlaceGraph(Stream(Stream(leaf0)))
-      case _ => id(m-1) juxtapose id(1)
+      case _ => id(1) juxtapose id(m-1)
     }
   }
 
