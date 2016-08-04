@@ -7,3 +7,4 @@ target/
 .ensime
 .settings
 .ensime_cache/
+.idea
