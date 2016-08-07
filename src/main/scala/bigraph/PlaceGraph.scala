@@ -18,6 +18,7 @@ object Site {
 }
 
 
+
 trait PlaceGraph[+A] extends PlaceGraphFunctions{
   self =>
   import Site._
@@ -43,7 +44,9 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
   lazy val outerFace: Int = forest.size
 
-  lazy val sites: Stream[Site] = forest.flatten.map((t)=> t.flatten).flatten.filter((_).isLeft).flatMap(s=> s.swap.toOption)
+  lazy val sites: Stream[Site] = {
+    forest.flatten.flatMap(t => t.flatten).filter(_.isLeft).flatMap(s => s.swap.toOption)
+  }
 
   def drawPlaceGraph: String = drawRegions(forest)
 
@@ -61,7 +64,7 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
       if (self.sites.isEmpty || p.sites.isEmpty) {
         p.forest
       } else if(self.sites.max.id >= p.sites.min.id) {
-        incrementSites(p)(self.sites.max.id+1).forest
+        incrementSites(p,self.sites.max.id+1).forest
       } else {
         p.forest
       }
@@ -69,72 +72,69 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
     PlaceGraph(rs)
   }
 
-  private def incrementSites[U >: A](p: PlaceGraph[U])(inc: Int): PlaceGraph[U] = {
+  def incrementSites[U >: A](p: PlaceGraph[U],inc: Int): PlaceGraph[U] = {
     p match {
-      case p if p.sites.isEmpty => p
-      case _ => {
+      case x if x.sites.isEmpty => x
+      case _ =>
         val rs = p.forest.map((region:Stream[Tree[Site \/ U]]) =>
           region.map(tree =>
-            tree.map(n =>
-              n match {
-                case -\/(Site(i)) => -\/(Site(i+inc))
-                case n => n
-              }
-            )
+            tree.map {
+              case -\/(Site(i)) => -\/(Site(i + inc))
+              case n => n
+            }
           )
         )
-        PlaceGraph(rs)}
+        PlaceGraph(rs)
     }
   }
 
+
+
   def compose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = {
-    case p:PlaceGraph[U] if p.outerFace == self.innerFace =>
-      PlaceGraph(
-        forest.map((region:Stream[Tree[Site \/ U]]) =>
-          region.flatMap(t => t match {
-            case Leaf(-\/(Site(i))) => p.forest(i)
-            case tree => Stream(composeRegionsInSites(tree, p, sites))
-          }
-          )
-        )
+    case p:PlaceGraph[U] if p.outerFace == self.innerFace => {
+      val pInc = incrementSites(p,self.innerFace)
+      val f = self.forest.map((region: Stream[Tree[Site \/ U]]) =>
+        region.flatMap {
+          case Leaf(-\/(Site(i))) => pInc.forest(i)
+          case tree => Stream(composeRegionsInSites(tree, pInc, self.sites))
+        }
       )
+      incrementSites(PlaceGraph(f),-self.innerFace) 
+    }
   }
 
   private def insertRegionInLocation[U >: A](loc: TreeLoc[Site \/ U],rg0: Stream[Tree[Site \/ U]]):TreeLoc[Site \/ U] = {
     rg0.length match {
       case 0 => loc
-      case n => {
+      case n =>
         insertRegionInLocation(loc.insertLeft(rg0.head).right.get,rg0.tail)
-      }
     }
   }
 
   private def composeRegionsInSites[U >: A](tree: Tree[Site \/ U],pg: PlaceGraph[U],ss: Stream[Site]): Tree[Site \/ U] = {
     ss.size match {
       case 0 => tree
-      case n => {
+      case n =>
         tree.loc.find((_:TreeLoc[Site\/U]).getLabel == -\/(ss.head)) match {
           case None => composeRegionsInSites(tree,pg,ss.tail)
-          case Some(loc) => {
+          case Some(loc) =>
             val newTree = insertRegionInLocation(loc, pg.forest(ss.head.id)).delete.get.toTree
             composeRegionsInSites(newTree,pg,ss.tail)
-          }
         }
-      }
     }
   }
 
-  def | [U >: A](p: PlaceGraph[U]) = merge(2) compose (this || p) //FIXME - subtyping is not working properly
+  def | [U >: A](p: PlaceGraph[U]) = merge(2) compose (this || p)
 
-  def || [U >: A](p: PlaceGraph[U]) = this juxtapose p //FIXME - subtyping is not working properly
+  def || [U >: A](p: PlaceGraph[U]) = this juxtapose p
 
-  def <> [U >: A](p: PlaceGraph[U]) = this compose p //FIXME - subtyping is not working properly
+  def <> [U >: A](p: PlaceGraph[U]) = this compose p
 }
 
 object PlaceGraph extends PlaceGraphFunctions {
   def apply[A](s: Stream[Stream[Tree[Site \/ A]]]): PlaceGraph[A] = new PlaceGraph[A]{
     def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = s.asInstanceOf[Stream[Stream[Tree[Site \/ U]]]]
-    override def toString = drawPlaceGraph
+    override def toString = "Interface: " + innerFace + " -> " + outerFace + "\n" + drawPlaceGraph
   }
   def unapply[A](pg: PlaceGraph[A]): Option[Stream[Stream[Tree[Site \/ A]]]] = Some(pg.forest)
 }
