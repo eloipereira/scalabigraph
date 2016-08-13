@@ -29,7 +29,7 @@ trait PlaceGraphGenerator {
   def juxtaposes: Gen[PlaceGraph[Int]] = for {
     r0 <- regions
     r1 <- places
-  } yield (r0 || r1)
+  } yield r0 || r1
 
   def places: Gen[PlaceGraph[Int]] = Gen.oneOf(regions, juxtaposes)
 
@@ -37,7 +37,7 @@ trait PlaceGraphGenerator {
 
  object PlaceGraphSpecification extends Properties("PlaceGraph") with PlaceGraphGenerator{
    property("composition innerFace") = forAll(places,places) { (p0:PlaceGraph[Int],p1:PlaceGraph[Int]) =>
-     (p0.compose.isDefinedAt(p1)) ==> {
+     p0.compose.isDefinedAt(p1) ==> {
        val p = p0 compose p1
        ("inner face of result == inner face of #2" |: (p.innerFace == p1.innerFace)) &&
          ("outer face of result == outer face of #1" |: (p.outerFace == p0.outerFace))
