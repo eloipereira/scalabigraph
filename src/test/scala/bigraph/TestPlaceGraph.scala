@@ -1,7 +1,8 @@
 package bigraph
 import org.scalacheck.Properties
 import org.scalacheck._
-import Prop.{forAll,BooleanOperators}
+import Prop.{BooleanOperators, forAll}
+import org.scalatest.FunSuite
 
 
 trait PlaceGraphGenerator {
@@ -44,3 +45,4 @@ trait PlaceGraphGenerator {
      }
    }
  }
+

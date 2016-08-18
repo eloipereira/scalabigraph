@@ -13,7 +13,8 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.3.0-M2",
   "org.scalacheck" %% "scalacheck" % "1.13.2" % "test",
-  "com.assembla.scala-incubator" %% "graph-core" % "1.11.0"
+  "com.assembla.scala-incubator" %% "graph-core" % "1.11.0",
+  "org.typelevel" %% "scalaz-scalatest" % "0.3.0" % "test"
 )
 
 scalacOptions += "-deprecation"
