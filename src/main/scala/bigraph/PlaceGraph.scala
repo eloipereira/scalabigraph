@@ -1,4 +1,5 @@
 package bigraph
+package placeGraph
 
 import scalaz.{\/, _}
 import Scalaz._
@@ -40,9 +41,9 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
     )
   }
 
-  lazy val innerFace: Int = sites.size
+  lazy val placeInnerFace: Int = sites.size
 
-  lazy val outerFace: Int = forest.size
+  lazy val placeOuterFace: Int = forest.size
 
   lazy val sites: Stream[Site] = {
     forest.flatten.flatMap(t => t.flatten).filter(_.isLeft).flatMap(s => s.swap.toOption)
@@ -91,15 +92,15 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
 
   def compose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = {
-    case p:PlaceGraph[U] if p.outerFace == self.innerFace =>
-      val pInc = incrementSites(p,self.innerFace)
+    case p:PlaceGraph[U] if p.placeOuterFace == self.placeInnerFace =>
+      val pInc = incrementSites(p,self.placeInnerFace)
       val f = self.forest.map((region: Stream[Tree[Site \/ U]]) =>
         region.flatMap {
           case Leaf(-\/(Site(i))) => pInc.forest(i)
           case tree => Stream(composeRegionsInSites(tree, pInc, self.sites))
         }
       )
-      incrementSites(PlaceGraph(f),-self.innerFace)
+      incrementSites(PlaceGraph(f),-self.placeInnerFace)
   }
 
   private def insertRegionInLocation[U >: A](loc: TreeLoc[Site \/ U],rg0: Stream[Tree[Site \/ U]]):TreeLoc[Site \/ U] = {
@@ -133,12 +134,12 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 object PlaceGraph extends PlaceGraphFunctions {
   def apply[A](s: Stream[Stream[Tree[Site \/ A]]]): PlaceGraph[A] = new PlaceGraph[A]{
     def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = s.asInstanceOf[Stream[Stream[Tree[Site \/ U]]]]
-    override def toString = "Interface: " + innerFace + " -> " + outerFace + "\n" + drawPlaceGraph
+    override def toString = "Interface: " + placeInnerFace + " -> " + placeOuterFace + "\n" + drawPlaceGraph
   }
   def unapply[A](pg: PlaceGraph[A]): Option[Stream[Stream[Tree[Site \/ A]]]] = Some(pg.forest)
 }
 
-case class Ion[A](n: A) extends PlaceGraph[A] with PlaceGraphFunctions{
+case class PlaceIon[A](n: A) extends PlaceGraph[A] with PlaceGraphFunctions{
   def forest[U >: A]:Stream[Stream[Tree[Site \/ U]]] = ion(n).forest
 }
 
@@ -245,8 +246,8 @@ trait PlaceGraphFunctions{
     override def equal(a1: PlaceGraph[A], a2: PlaceGraph[A]): Boolean = a1.forest === a2.forest
   }
 
-  implicit def ionEqual[A]: Equal[Ion[A]] = new Equal[Ion[A]] {
-    override def equal(a1: Ion[A], a2: Ion[A]): Boolean = placeGraphEqual.equal(a1,a2)
+  implicit def ionEqual[A]: Equal[PlaceIon[A]] = new Equal[PlaceIon[A]] {
+    override def equal(a1: PlaceIon[A], a2: PlaceIon[A]): Boolean = placeGraphEqual.equal(a1,a2)
   }
 
   implicit def atomEqual[A]: Equal[Atom[A]] = new Equal[Atom[A]] {

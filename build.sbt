@@ -19,4 +19,4 @@ libraryDependencies ++= Seq(
 
 scalacOptions += "-deprecation"
 
-initialCommands in console := "import bigraph._, PlaceGraph._"
+initialCommands in console := "import bigraph._, placeGraph._, linkGraph._, PlaceGraph._, LinkGraph._"
