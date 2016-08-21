@@ -8,11 +8,12 @@ import linkGraph._
 /**
   * Created by eloipereira on 8/18/16.
   */
-trait Bigraph[A,B]{self =>
+trait Bigraph[+A,+B]{self =>
   def placeGraph: PlaceGraph[A]
   def linkGraph: LinkGraph[A,B]
   lazy val innerFace: (Int, Set[Symbol]) = (placeGraph.placeInnerFace,linkGraph.linkInnerFace)
   lazy val outerFace: (Int, Set[Symbol]) = (placeGraph.placeOuterFace,linkGraph.linkOuterFace)
+
   def compose[U0 >: A, U1 >: B]: PartialFunction[Bigraph[U0, U1], Bigraph[U0, U1]] = {
     case b: Bigraph[U0,U1] if b.outerFace == self.innerFace =>
       Bigraph(self.placeGraph compose b.placeGraph, self.linkGraph compose b.linkGraph)
@@ -42,7 +43,13 @@ case class Ion[A](node: A, names: Stream[Symbol]) extends Bigraph[A,Nothing] {
     )
 }
 
-case class Id(i: Int, names: List[Symbol]) extends Bigraph[Nothing,Nothing] {
+case class Id(i: Int, names: Stream[Symbol]) extends Bigraph[Nothing,Nothing] {
   def linkGraph: LinkGraph[Nothing,Nothing] = LinkId(names)
   def placeGraph: PlaceGraph[Nothing] = PlaceId(i)
 }
+
+case object Unit extends Bigraph[Nothing,Nothing] {
+  def linkGraph: LinkGraph[Nothing,Nothing] = LinkUnit
+  def placeGraph: PlaceGraph[Nothing] = PlaceUnit
+}
+

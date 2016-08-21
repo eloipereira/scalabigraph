@@ -147,7 +147,7 @@ case class Atom[A](n:A) extends PlaceGraph[A]  with PlaceGraphFunctions{
   def forest[U >: A]:Stream[Stream[Tree[Site \/ U]]] = atom(n).forest
 }
 
-case object Unit extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
+case object PlaceUnit extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
   def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = unit.forest
 }
 
@@ -262,8 +262,8 @@ trait PlaceGraphFunctions{
     override def equal(a1: Permute.type, a2: Permute.type): Boolean = placeGraphEqual.equal(a1,a2)
   }
 
-  implicit def unitEqual: Equal[Unit.type] = new Equal[Unit.type] {
-    override def equal(a1: Unit.type, a2: Unit.type): Boolean = placeGraphEqual.equal(a1,a2)
+  implicit def unitEqual: Equal[PlaceUnit.type] = new Equal[PlaceUnit.type] {
+    override def equal(a1: PlaceUnit.type, a2: PlaceUnit.type): Boolean = placeGraphEqual.equal(a1,a2)
   }
 
   implicit def idEqual: Equal[PlaceId] = new Equal[PlaceId] {

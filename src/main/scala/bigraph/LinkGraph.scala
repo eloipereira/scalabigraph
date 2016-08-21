@@ -64,10 +64,13 @@ trait LinkGraph[+A, +B] {
             case Some(-\/(s)) => false
             case _ => true
           })
-        rest0 ++ rest1 ++ outers1 map {
-          case (a, Some(-\/(s))) => (a, inners0(Some(-\/(s))))
-          case p => p
-        }
+        if (outers1.isEmpty)
+          rest0 ++ rest1
+        else
+          rest0 ++ rest1 ++ (outers1 map {
+            case (a, Some(-\/(s))) => (a, inners0(Some(-\/(s))))
+            case p => p
+          })
       }
       LinkGraph(h)
   }
@@ -97,8 +100,12 @@ case class Substitution(innerNames: List[Symbol], outerName: Symbol) extends Lin
   def hypergraph[U0 >: Nothing, U1 >: Nothing] = substitution(innerNames, outerName).hypergraph
 }
 
-case class LinkId(names: List[Symbol]) extends LinkGraph[Nothing, Nothing] with LinkGraphFunctions {
+case class LinkId(names: Stream[Symbol]) extends LinkGraph[Nothing, Nothing] with LinkGraphFunctions {
   def hypergraph[U0 >: Nothing, U1 >: Nothing] = id(names).hypergraph
+}
+
+case object LinkUnit extends LinkGraph[Nothing, Nothing] with LinkGraphFunctions {
+  def hypergraph[U0 >: Nothing, U1 >: Nothing] = Map()
 }
 
 
@@ -116,12 +123,12 @@ trait LinkGraphFunctions {
       def hypergraph[U0 >: Nothing, U1 >: Nothing] = Map(Some(-\/(innerName)) -> None)
     }
 
-  def id(names: List[Symbol]): LinkGraph[Nothing, Nothing] =
+  def id(names: Stream[Symbol]): LinkGraph[Nothing, Nothing] =
     new LinkGraph[Nothing, Nothing]{
       def hypergraph[U0 >: Nothing, U1 >: Nothing] = names.foldLeft(Map(): Map[Option[\/[Symbol, Port[U0]]], Option[\/[Symbol, Edge[U1]]]])(
         (acc, n) =>
           acc ++ Map(Some(-\/(n)) -> Some(-\/(n)))
       )
-  }
+    }
 }
 
