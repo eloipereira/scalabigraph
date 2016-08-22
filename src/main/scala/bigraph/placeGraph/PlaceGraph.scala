@@ -1,28 +1,15 @@
-package bigraph
-package placeGraph
+package bigraph.placeGraph
 
-import scalaz.{\/, _}
+import scalaz.Tree.{Leaf, Node}
+import scalaz.{-\/, Equal, Show, Tree, TreeLoc, \/, \/-}
+import scalaz._
 import Scalaz._
-import scalaz.Tree._
-import scalaz.Order._
-import scalaz.Equal._
 
-
-case class Site(id: Int) {
-  override def toString = "$" + id
-}
-
-object Site {
-  implicit def orderById: Order[Site] = orderBy((_:Site).id)
-  implicit def orderingById = orderById.toScalaOrdering
-  implicit def equalById: Equal[Site] = equalBy((_:Site).id)
-}
-
-
-
+/**
+  * Created by eloipereira on 8/22/16.
+  */
 trait PlaceGraph[+A] extends PlaceGraphFunctions{
   self =>
-  import Site._
 
   def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]]
 
@@ -213,18 +200,17 @@ trait PlaceGraphFunctions{
     def equal(s0: Stream[Tree[Site \/ A]], s1: Stream[Tree[Site \/ A]]): Boolean = {(s0: Stream[Tree[Site \/ A]],s1: Stream[Tree[Site \/ A]]) match {
       case (Stream(), Stream()) => true
       case (Stream(a), Stream(b)) => a === b
-      case (s0,s1) if s0.size != s1.size => false
-      case (s0,s1) => {
-        val i = s0.indexWhere(_ === s1.head)
+      case (x0,x1) if x0.size != x1.size => false
+      case (x0,x1) =>
+        val i = s0.indexWhere(_ === x1.head)
         if (i == -1)
           false
-        else if (i == (s0.size - 1))
-          equal(s0.dropRight(1), s1.tail)
+        else if (i == (x0.size - 1))
+          equal(x0.dropRight(1), x1.tail)
         else if (i == 0)
-          equal(s0.drop(1), s1.tail)
+          equal(x0.drop(1), x1.tail)
         else
-          equal(s0.dropRight(s0.size - i) ++ s0.drop(i+1), s1.tail)
-      }
+          equal(x0.dropRight(s0.size - i) ++ x0.drop(i+1), x1.tail)
     }
     }
   }
@@ -239,7 +225,7 @@ trait PlaceGraphFunctions{
         s0.head === s1.head
       else
         (s0.head === s1.head) && forestEqual.equal(s0.tail,s1.tail)
-    } // TODO - still not working!
+    }
   }
 
   implicit def placeGraphEqual[A]: Equal[PlaceGraph[A]] = new Equal[PlaceGraph[A]]{

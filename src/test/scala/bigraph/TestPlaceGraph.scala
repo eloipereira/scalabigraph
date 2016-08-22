@@ -1,4 +1,4 @@
-package bigraph
+package bigraph.placeGraph
 import org.scalacheck.Properties
 import org.scalacheck._
 import Prop.{BooleanOperators, forAll}
@@ -8,11 +8,11 @@ import org.scalatest.FunSuite
 trait PlaceGraphGenerator {
   val ints = Gen.choose(-100, 100)
 
-  def unit: Gen[PlaceGraph[Int]] = Gen.const(Unit)
+  def unit: Gen[PlaceGraph[Int]] = Gen.const(PlaceUnit)
 
   def ions: Gen[PlaceGraph[Int]] = for{
     x <- ints
-  } yield Ion(x)
+  } yield PlaceIon(x)
 
   def nestings: Gen[PlaceGraph[Int]] = for {
     x <- ints
