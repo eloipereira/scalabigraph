@@ -1,13 +1,12 @@
 package bigraph.placeGraph
 
-
 import org.scalatest.FunSuite
 
 import scalaz.Equal
 /**
   * Created by eloipereira on 8/18/16.
   */
-class PlaceAxioms extends FunSuite{ //FIXME - "===" from scalaz collides with "===" of scalatest. implicit conversions are not applicable because they are ambiguous
+class PlaceAxioms extends FunSuite{
   test("Place Axiom 1: "){
     val a = Join compose Permute
     val b = Join

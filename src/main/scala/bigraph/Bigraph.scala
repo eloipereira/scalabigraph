@@ -1,7 +1,7 @@
 package bigraph
 
 
-import scalaz.{-\/, \/, \/-}
+import scalaz.{\/, \/-}
 import placeGraph._
 import linkGraph._
 
@@ -23,6 +23,12 @@ trait Bigraph[+A]{self =>
       if self.linkGraph.juxtapose.isDefinedAt(b.linkGraph) =>
         Bigraph(self.placeGraph juxtapose  b.placeGraph, self.linkGraph juxtapose b.linkGraph)
   }
+  def || [U >: A](b: Bigraph[U]) = Bigraph(self.placeGraph || b.placeGraph, self.linkGraph juxtaposeWithSharing b.linkGraph)
+  def | [U >: A](b: Bigraph[U]) = {
+    val bPar = self || b
+    (Bigraph(PlaceGraph.merge(2),LinkUnit) juxtapose Id(0,Some(bPar.linkGraph.linkOuterFace.toStream))) compose bPar
+  }
+  def <> [U >: A](b: Bigraph[U]) = (self || Id(0,Some(b.linkGraph.linkOuterFace.toStream))) compose b
 }
 
 object Bigraph{

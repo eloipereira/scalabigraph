@@ -32,6 +32,8 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
   lazy val placeOuterFace: Int = forest.size
 
+  def support[U >: A]: Set[U] = forest.flatten.flatMap(t => t.toStream).flatMap(o => o.toOption).toSet
+
   lazy val sites: Stream[Site] = {
     forest.flatten.flatMap(t => t.flatten).filter(_.isLeft).flatMap(s => s.swap.toOption)
   }
@@ -46,18 +48,19 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
   private def drawTrees(region: Int,ts: Stream[Tree[Site \/ Any]]): String = "\n#" + region + "[\n" + ts.map(_.drawTree).foldLeft("")(_+_) + "]\n"
 
-  def juxtapose[U >: A](p: PlaceGraph[U]): PlaceGraph[U] = {
-    val currentForest: Stream[Stream[Tree[Site \/ U]]] = self.forest
-    val rs = currentForest #::: {
-      if (self.sites.isEmpty || p.sites.isEmpty) {
-        p.forest
-      } else if(self.sites.max.id >= p.sites.min.id) {
-        incrementSites(p,self.sites.max.id+1).forest
-      } else {
-        p.forest
+  def juxtapose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = {
+    case p:PlaceGraph[U] if self.support.intersect(p.support) == Set.empty =>
+      val currentForest: Stream[Stream[Tree[Site \/ U]]] = self.forest
+      val rs = currentForest #::: {
+        if (self.sites.isEmpty || p.sites.isEmpty) {
+          p.forest
+        } else if(self.sites.max.id >= p.sites.min.id) {
+          incrementSites(p,self.sites.max.id+1).forest
+        } else {
+          p.forest
+        }
       }
-    }
-    PlaceGraph(rs)
+      PlaceGraph(rs)
   }
 
   def incrementSites[U >: A](p: PlaceGraph[U],inc: Int): PlaceGraph[U] = {
@@ -79,7 +82,7 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
 
   def compose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = {
-    case p:PlaceGraph[U] if p.placeOuterFace == self.placeInnerFace =>
+    case p:PlaceGraph[U] if (self.placeInnerFace == p.placeOuterFace) && (self.support.intersect(p.support) == Set.empty) =>
       val pInc = incrementSites(p,self.placeInnerFace)
       val f = self.forest.map((region: Stream[Tree[Site \/ U]]) =>
         region.flatMap {
@@ -111,11 +114,12 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
     }
   }
 
-  def | [U >: A](p: PlaceGraph[U]) = merge(2) compose (this || p)
+  def | [U >: A](p: PlaceGraph[U]) = merge(2) compose (self || p)
 
-  def || [U >: A](p: PlaceGraph[U]) = this juxtapose p
+  def || [U >: A](p: PlaceGraph[U]) = self juxtapose p
 
-  def <> [U >: A](p: PlaceGraph[U]) = this compose p
+  def <> [U >: A](p: PlaceGraph[U]) = self compose p
+
 }
 
 object PlaceGraph extends PlaceGraphFunctions {

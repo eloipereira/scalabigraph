@@ -1,6 +1,5 @@
 package bigraph.linkGraph
 
-
 import org.scalatest.FunSuite
 
 import scalaz.Equal

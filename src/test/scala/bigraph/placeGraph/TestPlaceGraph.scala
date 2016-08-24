@@ -1,8 +1,7 @@
 package bigraph.placeGraph
-import org.scalacheck.Properties
-import org.scalacheck._
-import Prop.{BooleanOperators, forAll}
-import org.scalatest.FunSuite
+
+import org.scalacheck.Prop.{BooleanOperators, forAll}
+import org.scalacheck.{Properties, _}
 
 
 trait PlaceGraphGenerator {
@@ -18,12 +17,12 @@ trait PlaceGraphGenerator {
     x <- ints
     i <- ions
     r <- regions
-  } yield (i <> r)
+  } yield i <> r
 
   def siblings: Gen[PlaceGraph[Int]] = for {
     r0 <- nestings
     r1 <- regions
-  } yield (r0 | r1)
+  } yield r0 | r1
 
   def regions: Gen[PlaceGraph[Int]] = Gen.oneOf(unit,ions,siblings)
 

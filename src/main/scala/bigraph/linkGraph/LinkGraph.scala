@@ -1,8 +1,6 @@
 package bigraph.linkGraph
 
 import scalaz.{-\/, \/, \/-, Equal}
-import scalaz._
-import Scalaz._
 
 /**
   * Created by eloipereira on 8/22/16.
@@ -66,6 +64,12 @@ trait LinkGraph[+A] {
   def juxtapose[U >: A]: PartialFunction[LinkGraph[U], LinkGraph[U]] = {
     case l: LinkGraph[U]
       if l.linkInnerFace.intersect(self.linkInnerFace) == Set.empty && l.linkOuterFace.intersect(self.linkOuterFace) == Set.empty =>
+      LinkGraph(self.hypergraph[U] ++ l.hypergraph)
+  }
+
+  def juxtaposeWithSharing[U >: A]: PartialFunction[LinkGraph[U], LinkGraph[U]] = {
+    case l: LinkGraph[U]
+      if l.linkInnerFace.intersect(self.linkInnerFace).forall(a => self.hypergraph(Some(-\/(a))) == l.hypergraph(Some(-\/(a)))) =>
       LinkGraph(self.hypergraph[U] ++ l.hypergraph)
   }
 
