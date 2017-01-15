@@ -17,11 +17,13 @@ trait PlaceGraphGenerator {
     x <- ints
     i <- ions
     r <- regions
+    if i.compose.isDefinedAt(r)
   } yield i <> r
 
   def siblings: Gen[PlaceGraph[Int]] = for {
     r0 <- nestings
     r1 <- regions
+    if r0.juxtapose.isDefinedAt(r1)
   } yield r0 | r1
 
   def regions: Gen[PlaceGraph[Int]] = Gen.oneOf(unit,ions,siblings)
@@ -29,6 +31,7 @@ trait PlaceGraphGenerator {
   def juxtaposes: Gen[PlaceGraph[Int]] = for {
     r0 <- regions
     r1 <- places
+    if r0.juxtapose.isDefinedAt(r1)
   } yield r0 || r1
 
   def places: Gen[PlaceGraph[Int]] = Gen.oneOf(regions, juxtaposes)
@@ -36,10 +39,13 @@ trait PlaceGraphGenerator {
 }
 
  object PlaceGraphSpecification extends Properties("PlaceGraph") with PlaceGraphGenerator{
-   property("composition innerFace") = forAll(places,places) { (p0:PlaceGraph[Int],p1:PlaceGraph[Int]) =>
-     p0.compose.isDefinedAt(p1) ==> {
-       val p = p0 compose p1
-       ("inner face of result == inner face of #2" |: (p.placeInnerFace == p1.placeInnerFace)) &&
+   property("COMPOSITION") =
+     forAll(places,places) { (p0:PlaceGraph[Int],p1:PlaceGraph[Int]) =>
+       (p0.compose.isDefinedAt(p1) && p0 != PlaceUnit) ==> {
+         val p = p0 <> p1
+         ("support of #1 disjoint of support of #2" |: (p0.support.intersect(p1.support) == Set.empty)) &&
+         ("inner face of #1 == outer face of #2" |: (p0.placeInnerFace == p1.placeOuterFace)) &&
+         ("inner face of result == inner face of #2" |: (p.placeInnerFace == p1.placeInnerFace)) &&
          ("outer face of result == outer face of #1" |: (p.placeOuterFace == p0.placeOuterFace))
      }
    }

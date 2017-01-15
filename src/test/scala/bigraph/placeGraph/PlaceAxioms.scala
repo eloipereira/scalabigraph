@@ -1,6 +1,6 @@
 package bigraph.placeGraph
 
-import org.scalatest.FunSuite
+import org.scalatest.{FunSuite}
 
 import scalaz.Equal
 /**

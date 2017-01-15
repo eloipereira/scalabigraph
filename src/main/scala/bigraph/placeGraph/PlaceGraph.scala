@@ -49,7 +49,7 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
   private def drawTrees(region: Int,ts: Stream[Tree[Site \/ Any]]): String = "\n#" + region + "[\n" + ts.map(_.drawTree).foldLeft("")(_+_) + "]\n"
 
   def juxtapose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = {
-    case p:PlaceGraph[U] if self.support.intersect(p.support) == Set.empty =>
+    case p:PlaceGraph[U] if (self.support.intersect(p.support) == Set.empty) =>
       val currentForest: Stream[Stream[Tree[Site \/ U]]] = self.forest
       val rs = currentForest #::: {
         if (self.sites.isEmpty || p.sites.isEmpty) {
@@ -81,14 +81,17 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
 
 
-  def compose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = {
-    case p:PlaceGraph[U] if (self.placeInnerFace == p.placeOuterFace) && (self.support.intersect(p.support) == Set.empty) =>
+  def compose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = { //TODO - not sure about this... compose must be cleaned
+    case p:PlaceGraph[U] if ((self.placeInnerFace == p.placeOuterFace) && (self.support.intersect(p.support) == Set.empty)) =>
       val pInc = incrementSites(p,self.placeInnerFace)
       val f = self.forest.map((region: Stream[Tree[Site \/ U]]) =>
-        region.flatMap {
-          case Leaf(-\/(Site(i))) => pInc.forest(i)
-          case tree => Stream(composeRegionsInSites(tree, pInc, self.sites))
-        }
+        region.flatMap( (t: Tree[Site \/ U]) =>
+          t match {
+           case Leaf(-\/(Site(i))) => pInc.forest(i)
+           case Leaf(\/-(a)) => Stream(t)
+           case _ => Stream(composeRegionsInSites(t, pInc, self.sites))
+          }
+        )
       )
       incrementSites(PlaceGraph(f),-self.placeInnerFace)
   }
