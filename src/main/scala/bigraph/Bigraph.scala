@@ -26,9 +26,9 @@ trait Bigraph[+A]{self =>
   def || [U >: A](b: Bigraph[U]) = Bigraph(self.placeGraph || b.placeGraph, self.linkGraph juxtaposeWithSharing b.linkGraph)
   def | [U >: A](b: Bigraph[U]) = {
     val bPar = self || b
-    (Bigraph(PlaceGraph.merge(2),LinkUnit) juxtapose Id(0,Some(bPar.linkGraph.linkOuterFace.toStream))) compose bPar
+    (Bigraph(PlaceGraph.merge(2),LinkUnit) juxtapose Id(0,bPar.linkGraph.linkOuterFace.toStream)) compose bPar
   }
-  def <> [U >: A](b: Bigraph[U]) = (self || Id(0,Some(b.linkGraph.linkOuterFace.toStream))) compose b
+  def <> [U >: A](b: Bigraph[U]) = (self || Id(0,b.linkGraph.linkOuterFace.toStream)) compose b
 }
 
 object Bigraph{
@@ -49,7 +49,7 @@ case class Ion[A](node: A, names: Stream[Symbol]) extends Bigraph[A] {
     )
 }
 
-case class Id(i: Int, names: Option[Stream[Symbol]]) extends Bigraph[Nothing] {
+case class Id(i: Int, names: Stream[Symbol]) extends Bigraph[Nothing] {
   def linkGraph: LinkGraph[Nothing] = LinkId(names)
   def placeGraph: PlaceGraph[Nothing] = PlaceId(i)
 }

@@ -10,12 +10,12 @@ import scalaz.Equal
 class LinkAxioms extends FunSuite{
   test("Link Axiom 1: "){
     val a = Substitution(Stream('x),'x).asInstanceOf[LinkGraph[Nothing]]
-    val b = LinkId(Some(Stream('x))).asInstanceOf[LinkGraph[Nothing]]
+    val b = LinkId(Stream('x)).asInstanceOf[LinkGraph[Nothing]]
     assert(Equal[LinkGraph[Nothing]].equal(a,b))
   }
   test("Link Axiom 2: "){
     val a = Closure('x) compose Substitution(Stream(), 'x)
-    val b = LinkId(None)
+    val b = LinkId(Stream())
     assert(Equal[LinkGraph[Nothing]].equal(a,b))
   }
   test("Link Axiom 3: "){
@@ -24,7 +24,7 @@ class LinkAxioms extends FunSuite{
     assert(Equal[LinkGraph[Nothing]].equal(a,b))
   }
   test("Link Axiom 4: "){
-    val a = Substitution(Stream('Y, 'y), 'z) compose (LinkId(Some(Stream('Y))) juxtapose Substitution(Stream('X), 'y))
+    val a = Substitution(Stream('Y, 'y), 'z) compose (LinkId(Stream('Y)) juxtapose Substitution(Stream('X), 'y))
     val b = Substitution(Stream('X, 'Y), 'z)
     assert(Equal[LinkGraph[Nothing]].equal(a,b))
   }

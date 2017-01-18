@@ -1,13 +1,13 @@
 package bigraph.linkGraph
 
-import scalaz.{-\/, \/, \/-, Equal}
+import scalaz.{-\/, Equal, Show, \/, \/-}
 
 /**
   * Created by eloipereira on 8/22/16.
   */
 trait LinkGraph[+A] {
   self =>
-  def hypergraph[U >: A]: Map[Option[Symbol \/ Port[U]], Option[Symbol]]
+  def hypergraph[U >: A]: Map[Option[Symbol \/ Port[U]], Option[Symbol]]//TODO - change type to Map[Option[Symbol] \/ Port[U], Option[Symbol]]
 
   def linkInnerFace[U >: A]: Set[Symbol] = hypergraph[U].keySet.flatMap {
     (x: Option[Symbol \/ Port[U]]) => x match {
@@ -81,6 +81,7 @@ object LinkGraph extends LinkGraphFunctions{
   }
 
   def unapply[A](arg: LinkGraph[A]): Option[Map[Option[Symbol \/ Port[A]], Option[Symbol]]] = Some(arg.hypergraph)
+
 }
 
 
@@ -92,7 +93,7 @@ case class Substitution(innerNames: Stream[Symbol], outerName: Symbol) extends L
   def hypergraph[U >: Nothing] = substitution(innerNames, outerName).hypergraph
 }
 
-case class LinkId(names: Option[Stream[Symbol]]) extends LinkGraph[Nothing] with LinkGraphFunctions {
+case class LinkId(names: Stream[Symbol]) extends LinkGraph[Nothing] with LinkGraphFunctions {
   def hypergraph[U >: Nothing] = id(names).hypergraph
 }
 
@@ -115,15 +116,13 @@ trait LinkGraphFunctions {
       def hypergraph[U >: Nothing] = Map(Some(-\/(innerName)) -> None)
     }
 
-  def id(names: Option[Stream[Symbol]]): LinkGraph[Nothing] =
+  def id(names: Stream[Symbol]): LinkGraph[Nothing] =
     new LinkGraph[Nothing]{
       def hypergraph[U >: Nothing] = names match {
-        case Some(ns) => ns.foldLeft(Map(): Map[Option[\/[Symbol, Port[U]]], Option[Symbol]])(
+        case Stream() => Map(None -> None)
+        case ns => ns.foldLeft(Map(): Map[Option[\/[Symbol, Port[U]]], Option[Symbol]])(
           (acc, n) => acc ++ Map(Some(-\/(n)) -> Some(n)))
-        case None => Map(None -> None)
       }
-
-
     }
 
   implicit def linkGraphEqual[A]: Equal[LinkGraph[A]] = new Equal[LinkGraph[A]] {
@@ -138,4 +137,23 @@ trait LinkGraphFunctions {
   implicit def idEqual: Equal[LinkId] = new Equal[LinkId] {
     override def equal(a1: LinkId, a2: LinkId): Boolean = linkGraphEqual.equal(a1,a2)
   }
+  implicit def LinkGraphShows[A]: Show[LinkGraph[A]] = Show.shows{
+    case Closure(s) => "/" + s.name
+    case Substitution(is,o) => o.toString + "/" + {
+      if(is.size == 1)
+        is.head.name
+      else
+        "(" + is.head.name + is.tail.foldLeft("")((s,sym)=> s + "," + sym.name) + ")"
+    }
+    case LinkId(ns) => {
+      if (ns.size == 1)
+        ns.head.name + "/" + ns.head.name
+      else{
+        val nsStr = "(" + ns.head.name + ns.tail.foldLeft("")((s,sym)=> s + "," + sym.name) + ")"
+        nsStr + "/" + nsStr
+      }
+    }
+  }
+
 }
+

@@ -1,15 +1,19 @@
+import scalaz._
+import Scalaz._
+import bigraph._
+import placeGraph._
+import linkGraph._
+import PlaceGraph._
+import LinkGraph._
 
-import bigraph.placeGraph._
+val c: LinkGraph[Any] = Closure('x)
 
+c.show
 
+val ids: LinkGraph[Any] = LinkId(Stream('x,'y,'z))
 
-val pErr0 = (PlaceIon(93) <> ((PlaceIon(-74) <> PlaceUnit) | PlaceIon(19)))
+ids.show
 
-pErr0 <> PlaceUnit
+val subs: LinkGraph[Any] = Substitution(Stream('x,'y,'z),'w)
 
-
-PlaceIon(1).compose.isDefinedAt(PlaceUnit)
-
-val p0 = PlaceUnit
-
-p0 == PlaceUnit
+subs.show
