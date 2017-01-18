@@ -43,9 +43,9 @@ case class Ion[A](node: A, names: Stream[Symbol]) extends Bigraph[A] {
   def placeGraph: PlaceGraph[A] = PlaceIon(node)
   def linkGraph: LinkGraph[A] = LinkGraph(hypergraph)
   def hypergraph[U >: Nothing] =
-    names.foldLeft(Map(): Map[Option[\/[Symbol, Port[U]]], Option[Symbol]])(
+    names.foldLeft(Map(): Map[Option[Symbol] \/ Port[U], Option[Symbol]])(
       (acc, n) =>
-        acc ++ Map(Some(\/-(Port[U](node.asInstanceOf[U],names.indexOf(n)))) -> Some(n))
+        acc ++ Map(\/-(Port[U](node.asInstanceOf[U],names.indexOf(n))) -> Some(n))
     )
 }
 
