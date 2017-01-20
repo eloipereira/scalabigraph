@@ -34,9 +34,7 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
   def support[U >: A]: Set[U] = forest.flatten.flatMap(t => t.toStream).flatMap(o => o.toOption).toSet
 
-  lazy val sites: Stream[Site] = {
-    forest.flatten.flatMap(t => t.flatten).filter(_.isLeft).flatMap(s => s.swap.toOption)
-  }
+  lazy val sites: Stream[Site] = forest.flatten.flatMap(t => t.flatten).filter(_.isLeft).flatMap(s => s.swap.toOption)
 
   def drawPlaceGraph: String = drawRegions(forest)
 
@@ -49,7 +47,7 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
   private def drawTrees(region: Int,ts: Stream[Tree[Site \/ Any]]): String = "\n#" + region + "[\n" + ts.map(_.drawTree).foldLeft("")(_+_) + "]\n"
 
   def juxtapose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = {
-    case p:PlaceGraph[U] if (self.support.intersect(p.support) == Set.empty) =>
+    case p:PlaceGraph[U] if self.support.intersect(p.support) == Set.empty =>
       val currentForest: Stream[Stream[Tree[Site \/ U]]] = self.forest
       val rs = currentForest #::: {
         if (self.sites.isEmpty || p.sites.isEmpty) {
@@ -82,7 +80,7 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
 
   def compose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = { //TODO - not sure about this... compose must be cleaned
-    case p:PlaceGraph[U] if ((self.placeInnerFace == p.placeOuterFace) && (self.support.intersect(p.support) == Set.empty)) =>
+    case p:PlaceGraph[U] if (self.placeInnerFace == p.placeOuterFace) && (self.support.intersect(p.support) == Set.empty) =>
       val pInc = incrementSites(p,self.placeInnerFace)
       val f = self.forest.map((region: Stream[Tree[Site \/ U]]) =>
         region.flatMap( (t: Tree[Site \/ U]) =>
@@ -194,14 +192,10 @@ trait PlaceGraphFunctions{
     def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(nodeWithSite(n)))
   }
 
-  implicit def eitherEqual[A]: Equal[Site \/ A] = new Equal[Site \/ A]{
-    def equal(x0: Site \/ A, x1: Site \/ A): Boolean = x0 == x1
-  }
+  implicit def eitherEqual[A]: Equal[Site \/ A] = (x0: Site \/ A, x1: Site \/ A) => x0 == x1
 
 
-  implicit def treeEqual[A]: Equal[Tree[Site \/ A]] = new Equal[Tree[Site \/ A]]{
-    def equal(s0: Tree[Site \/ A], s1: Tree[Site \/ A]): Boolean = Tree.treeEqual[Site \/ A].equal(s0,s1)
-  } //TODO - this needs to be tested. probably it fails since subforest must be treated as sets of trees
+  implicit def treeEqual[A]: Equal[Tree[Site \/ A]] = (s0: Tree[Site \/ A], s1: Tree[Site \/ A]) => Tree.treeEqual[Site \/ A].equal(s0, s1) //TODO - this needs to be tested. probably it fails since subforest must be treated as sets of trees
 
   implicit def streamAsSetEqual[A]: Equal[Stream[Tree[Site \/ A]]] = new Equal[Stream[Tree[Site \/ A]]]{
     def equal(s0: Stream[Tree[Site \/ A]], s1: Stream[Tree[Site \/ A]]): Boolean = {(s0: Stream[Tree[Site \/ A]],s1: Stream[Tree[Site \/ A]]) match {
@@ -212,55 +206,43 @@ trait PlaceGraphFunctions{
         val i = s0.indexWhere(_ === x1.head)
         if (i == -1)
           false
-        else if (i == (x0.size - 1))
+        else if (i == (x0.size - 1)) {
           equal(x0.dropRight(1), x1.tail)
-        else if (i == 0)
+        }
+        else if (i == 0) {
           equal(x0.drop(1), x1.tail)
-        else
-          equal(x0.dropRight(s0.size - i) ++ x0.drop(i+1), x1.tail)
+        }
+        else {
+          equal(x0.dropRight(s0.size - i) ++ x0.drop(i + 1), x1.tail)
+        }
     }
     }
   }
 
-  implicit def forestEqual[A]: Equal[Stream[Stream[Tree[Site \/ A]]]] = new Equal[Stream[Stream[Tree[Site \/ A]]]]{
-    def equal(s0: Stream[Stream[Tree[Site \/ A]]], s1: Stream[Stream[Tree[Site \/ A]]]): Boolean = {
-      if (s0.size != s1.size)
-        false
-      else if (s0.isEmpty)
-        true
-      else if (s0.size == 1)
-        s0.head === s1.head
-      else
-        (s0.head === s1.head) && forestEqual.equal(s0.tail,s1.tail)
-    }
+  implicit def forestEqual[A]: Equal[Stream[Stream[Tree[Site \/ A]]]] =
+    (s0: Stream[Stream[Tree[Site \/ A]]], s1: Stream[Stream[Tree[Site \/ A]]]) => {
+    if (s0.size != s1.size)
+      false
+    else if (s0.isEmpty)
+      true
+    else if (s0.size == 1)
+      s0.head === s1.head
+    else
+      (s0.head === s1.head) && forestEqual.equal(s0.tail, s1.tail)
   }
 
-  implicit def placeGraphEqual[A]: Equal[PlaceGraph[A]] = new Equal[PlaceGraph[A]]{
-    override def equal(a1: PlaceGraph[A], a2: PlaceGraph[A]): Boolean = a1.forest === a2.forest
-  }
+  implicit def placeGraphEqual[A]: Equal[PlaceGraph[A]] = (a1: PlaceGraph[A], a2: PlaceGraph[A]) => a1.forest === a2.forest
 
-  implicit def ionEqual[A]: Equal[PlaceIon[A]] = new Equal[PlaceIon[A]] {
-    override def equal(a1: PlaceIon[A], a2: PlaceIon[A]): Boolean = placeGraphEqual.equal(a1,a2)
-  }
+  implicit def ionEqual[A]: Equal[PlaceIon[A]] = (a1: PlaceIon[A], a2: PlaceIon[A]) => placeGraphEqual.equal(a1, a2)
 
-  implicit def atomEqual[A]: Equal[Atom[A]] = new Equal[Atom[A]] {
-    override def equal(a1: Atom[A], a2: Atom[A]): Boolean = placeGraphEqual.equal(a1,a2)
-  }
+  implicit def atomEqual[A]: Equal[Atom[A]] = (a1: Atom[A], a2: Atom[A]) => placeGraphEqual.equal(a1, a2)
 
-  implicit def joinEqual: Equal[Join.type] = new Equal[Join.type] {
-    override def equal(a1: Join.type, a2: Join.type): Boolean = placeGraphEqual.equal(a1,a2)
-  }
+  implicit def joinEqual: Equal[Join.type] = (a1: Join.type, a2: Join.type) => placeGraphEqual.equal(a1, a2)
 
-  implicit def permuteEqual: Equal[Permute.type] = new Equal[Permute.type] {
-    override def equal(a1: Permute.type, a2: Permute.type): Boolean = placeGraphEqual.equal(a1,a2)
-  }
+  implicit def permuteEqual: Equal[Permute.type] = (a1: Permute.type, a2: Permute.type) => placeGraphEqual.equal(a1, a2)
 
-  implicit def unitEqual: Equal[PlaceUnit.type] = new Equal[PlaceUnit.type] {
-    override def equal(a1: PlaceUnit.type, a2: PlaceUnit.type): Boolean = placeGraphEqual.equal(a1,a2)
-  }
+  implicit def unitEqual: Equal[PlaceUnit.type] = (a1: PlaceUnit.type, a2: PlaceUnit.type) => placeGraphEqual.equal(a1, a2)
 
-  implicit def idEqual: Equal[PlaceId] = new Equal[PlaceId] {
-    override def equal(a1: PlaceId, a2: PlaceId): Boolean = placeGraphEqual.equal(a1,a2)
-  }
+  implicit def idEqual: Equal[PlaceId] = (a1: PlaceId, a2: PlaceId) => placeGraphEqual.equal(a1, a2)
 }
 

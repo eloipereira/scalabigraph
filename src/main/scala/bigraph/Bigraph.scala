@@ -4,6 +4,8 @@ package bigraph
 import scalaz.{\/, \/-}
 import placeGraph._
 import linkGraph._
+import LinkGraph._
+
 
 /**
   * Created by eloipereira on 8/18/16.
@@ -43,9 +45,9 @@ case class Ion[A](node: A, names: Stream[Symbol]) extends Bigraph[A] {
   def placeGraph: PlaceGraph[A] = PlaceIon(node)
   def linkGraph: LinkGraph[A] = LinkGraph(hypergraph)
   def hypergraph[U >: Nothing] =
-    names.foldLeft(Map(): Map[Option[Symbol] \/ Port[U], Option[Symbol]])(
+    names.foldLeft(Map(): Map[Option[Symbol] \/ NodePortPair[U], Option[Symbol]])(
       (acc, n) =>
-        acc ++ Map(\/-(Port[U](node.asInstanceOf[U],names.indexOf(n))) -> Some(n))
+        acc ++ Map(\/-((node.asInstanceOf[U],names.indexOf(n))) -> Some(n))
     )
 }
 
