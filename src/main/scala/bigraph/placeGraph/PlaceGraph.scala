@@ -192,11 +192,11 @@ trait PlaceGraphFunctions{
     def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(nodeWithSite(n)))
   }
 
-  implicit def eitherEqual[A]: Equal[Site \/ A] = (x0: Site \/ A, x1: Site \/ A) => x0 == x1
+  implicit def eitherEqual[A: Equal]: Equal[Site \/ A] = (x0: Site \/ A, x1: Site \/ A) => x0 === x1
 
-  implicit def treeEqual[A]: Equal[Tree[Site \/ A]] = (s0: Tree[Site \/ A], s1: Tree[Site \/ A]) => Tree.treeEqual[Site \/ A].equal(s0, s1) //TODO - this needs to be tested. probably it fails since subforest must be treated as sets of trees
+  implicit def treeEqual[A: Equal]: Equal[Tree[Site \/ A]] = (s0: Tree[Site \/ A], s1: Tree[Site \/ A]) => Tree.treeEqual[Site \/ A].equal(s0, s1) //TODO - this needs to be tested. probably it fails since subforest must be treated as sets of trees
 
-  implicit def streamAsSetEqual[A]: Equal[Stream[Tree[Site \/ A]]] = new Equal[Stream[Tree[Site \/ A]]]{
+  implicit def streamAsSetEqual[A: Equal]: Equal[Stream[Tree[Site \/ A]]] = new Equal[Stream[Tree[Site \/ A]]]{
     def equal(s0: Stream[Tree[Site \/ A]], s1: Stream[Tree[Site \/ A]]): Boolean = {(s0: Stream[Tree[Site \/ A]],s1: Stream[Tree[Site \/ A]]) match {
       case (Stream(), Stream()) => true
       case (Stream(a), Stream(b)) => a === b
@@ -218,7 +218,7 @@ trait PlaceGraphFunctions{
     }
   }
 
-  implicit def forestEqual[A]: Equal[Stream[Stream[Tree[Site \/ A]]]] =
+  implicit def forestEqual[A: Equal]: Equal[Stream[Stream[Tree[Site \/ A]]]] =
     (s0: Stream[Stream[Tree[Site \/ A]]], s1: Stream[Stream[Tree[Site \/ A]]]) => {
     if (s0.size != s1.size)
       false
@@ -227,21 +227,21 @@ trait PlaceGraphFunctions{
     else if (s0.size == 1)
       s0.head === s1.head
     else
-      (s0.head === s1.head) && forestEqual.equal(s0.tail, s1.tail)
+      (s0.head === s1.head) && forestEqual[A].equal(s0.tail, s1.tail)
   }
 
-  implicit def placeGraphEqual[A]: Equal[PlaceGraph[A]] = (a1: PlaceGraph[A], a2: PlaceGraph[A]) => a1.forest === a2.forest
+  implicit def placeGraphEqual[A: Equal]: Equal[PlaceGraph[A]] = Equal.equalBy(_.forest)
 
-  implicit def ionEqual[A]: Equal[PlaceIon[A]] = (a1: PlaceIon[A], a2: PlaceIon[A]) => placeGraphEqual.equal(a1, a2)
+  implicit def ionEqual[A: Equal]: Equal[PlaceIon[A]] = (a1: PlaceIon[A], a2: PlaceIon[A]) => placeGraphEqual[A].equal(a1, a2)
 
-  implicit def atomEqual[A]: Equal[Atom[A]] = (a1: Atom[A], a2: Atom[A]) => placeGraphEqual.equal(a1, a2)
+  implicit def atomEqual[A: Equal]: Equal[Atom[A]] = (a1: Atom[A], a2: Atom[A]) => placeGraphEqual[A].equal(a1, a2)
 
-  implicit def joinEqual: Equal[Join.type] = (a1: Join.type, a2: Join.type) => placeGraphEqual.equal(a1, a2)
+  implicit def joinEqual: Equal[Join.type] = (a1: Join.type, a2: Join.type) => placeGraphEqual[Nothing].equal(a1, a2)
 
-  implicit def permuteEqual: Equal[Permute.type] = (a1: Permute.type, a2: Permute.type) => placeGraphEqual.equal(a1, a2)
+  implicit def permuteEqual: Equal[Permute.type] = (a1: Permute.type, a2: Permute.type) => placeGraphEqual[Nothing].equal(a1, a2)
 
-  implicit def unitEqual: Equal[PlaceUnit.type] = (a1: PlaceUnit.type, a2: PlaceUnit.type) => placeGraphEqual.equal(a1, a2)
+  implicit def unitEqual: Equal[PlaceUnit.type] = (a1: PlaceUnit.type, a2: PlaceUnit.type) => placeGraphEqual[Nothing].equal(a1, a2)
 
-  implicit def idEqual: Equal[PlaceId] = (a1: PlaceId, a2: PlaceId) => placeGraphEqual.equal(a1, a2)
+  implicit def idEqual: Equal[PlaceId] = (a1: PlaceId, a2: PlaceId) => placeGraphEqual[Nothing].equal(a1, a2)
 }
 
