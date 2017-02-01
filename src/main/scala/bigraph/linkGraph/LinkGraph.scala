@@ -1,17 +1,12 @@
 package bigraph.linkGraph
 
-import scalaz._
-import Scalaz._
+import scalaz._, Scalaz._
 
 import LinkGraph._
 
 /**
   * Created by eloipereira on 8/22/16.
   */
-
-
-
-
 
 trait LinkGraph[+A] {
   self =>
@@ -79,6 +74,7 @@ trait LinkGraph[+A] {
       if l.linkInnerFace.intersect(self.linkInnerFace).forall(a => self.hypergraph(-\/(Some(a))) == l.hypergraph(-\/(Some(a)))) =>
       LinkGraph[U](self.hypergraph[U] ++ l.hypergraph)
   }
+
 
 }
 
@@ -150,30 +146,65 @@ trait LinkGraphFunctions {
       }
     }
 
-  implicit def linkGraphEqual[A]: Equal[LinkGraph[A]] = (a1: LinkGraph[A], a2: LinkGraph[A]) => a1.hypergraph == a2.hypergraph
+
+
+
+  implicit def linkGraphEqual[A]: Equal[LinkGraph[A]] = Equal.equalBy(_.hypergraph)
+
+  implicit def hypergraphEqual[A]: Equal[Map[Option[InnerName] \/ NodePortPair[A], Option[OuterName]]] =  new Equal[Map[Disjunction[Option[InnerName], (A, Port)], Option[OuterName]]] {
+    override def equal(a1: Map[Option[InnerName] \/ NodePortPair[A], Option[OuterName]], a2: Map[Option[InnerName] \/ NodePortPair[A], Option[OuterName]]): Boolean = {
+      (a1.toStream, a2.toStream) match {
+        case (Stream(),Stream()) => true
+        case (Stream((a0,b0)), Stream((a1,b1))) => (a0 === a1) && (b0 === b1)
+        case (x0,x1) if x0.size != x1.size => false
+        case (x0,x1) => {
+          x0.map(x => x1.contains(x)).forall(b => b)
+        }
+      }
+    }
+  }
+
+
+  implicit def portEqual: Equal[Port] = (a1: Port, a2: Port) => Equal[Int].equal(a1,a2)
+
+  //implicit def innerSymbolEqual: Equal[InnerName] = (a1: InnerName, a2: InnerName) => Equal[Symbol].equal(a1, a2)
+
+  implicit def symbolEqual: Equal[Symbol] = (a1: Symbol, a2: Symbol) => a1.name === a2.name
+
+  //implicit def outerSymbolEqual: Equal[OuterName] = (a1: OuterName, a2: OuterName) => Equal[Symbol].equal(a1, a2)
+
+  implicit def nodePortPairEqual[A]: Equal[NodePortPair[A]] = (a1: (A, Port), a2: (A, Port)) => (a1._1 == a2._1) && (a1._2 === a2._2)
+
+  implicit def valueEqual: Equal[Option[OuterName]] = (a1: Option[OuterName], a2: Option[OuterName]) => optionEqual[OuterName].equal(a1,a2)
+
+  implicit def keyEqual[A]: Equal[Option[InnerName] \/ NodePortPair[A]] =
+    (a1: Option[InnerName] \/ NodePortPair[A], a2: Option[InnerName] \/ NodePortPair[A]) => a1 === a2
+
+
   implicit def substitutionEqual: Equal[Substitution] = (a1: Substitution, a2: Substitution) => linkGraphEqual.equal(a1, a2)
   implicit def closureEqual: Equal[Closure] = (a1: Closure, a2: Closure) => linkGraphEqual.equal(a1, a2)
   implicit def idEqual: Equal[LinkId] = (a1: LinkId, a2: LinkId) => linkGraphEqual.equal(a1, a2)
-  implicit def LinkGraphShows[A]: Show[LinkGraph[A]] = Show.shows{ //TOOD - Still incomplete
-    case Closure(s) => "/" + s.name
-    case Substitution(is,o) => o.toString + "/" + {
+  implicit def linkIonEqual[A]: Equal[LinkIon[A]] = (a1: LinkIon[A], a2: LinkIon[A]) => linkGraphEqual.equal(a1, a2)
+  implicit def LinkGraphShows[A]: Show[LinkGraph[A]] = Show.shows{ //TODO - Still incomplete
+    case Closure(s) => "/" + "[" + s.name + "]"
+    case Substitution(is,o) => "[" + o.name + "]" + "/" + {
       if(is.size == 1)
-        is.head.name
+        "[" + is.head.name + "]"
       else
-        "(" + is.head.name + is.tail.foldLeft("")((s,sym)=> s + "," + sym.name) + ")"
+        "[" + is.head.name + is.tail.foldLeft("")((s,sym)=> s + "," + sym.name) + "]"
     }
     case Renaming(m) => {
       val h = (m.head._1.name, m.head._2.name)
       val t = m.tail.foldLeft(("","")){
             case (p, (i,o)) => (p._1 + "," + i.name, p._2 + "," + o.name)
           }
-      "[" + h._2 + t._2 + "/" + h._1 + t._1 + "]"
+      "[" + h._2 + t._2 + "]/[" + h._1 + t._1 + "]"
     }
     case LinkId(ns) =>
       if (ns.size == 1)
         ns.head.name + "/" + ns.head.name
       else{
-        val nsStr = "(" + ns.head.name + ns.tail.foldLeft("")((s,sym)=> s + "," + sym.name) + ")"
+        val nsStr = "[" + ns.head.name + ns.tail.foldLeft("")((s,sym)=> s + "," + sym.name) + "]"
         nsStr + "/" + nsStr
       }
     case LinkIon(n,ls) =>

@@ -194,7 +194,6 @@ trait PlaceGraphFunctions{
 
   implicit def eitherEqual[A]: Equal[Site \/ A] = (x0: Site \/ A, x1: Site \/ A) => x0 == x1
 
-
   implicit def treeEqual[A]: Equal[Tree[Site \/ A]] = (s0: Tree[Site \/ A], s1: Tree[Site \/ A]) => Tree.treeEqual[Site \/ A].equal(s0, s1) //TODO - this needs to be tested. probably it fails since subforest must be treated as sets of trees
 
   implicit def streamAsSetEqual[A]: Equal[Stream[Tree[Site \/ A]]] = new Equal[Stream[Tree[Site \/ A]]]{

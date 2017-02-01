@@ -27,9 +27,16 @@ val linkIon: LinkGraph[String]
 
 linkIon.show
 
-val renames: LinkGraph[Nothing] = Renaming(Map('x -> 'z, 'y -> 'w))
+val renames: LinkGraph[String] = Renaming(Map('x -> 'z, 'y -> 'w))
 
 renames.show
 
 val linkIon2: LinkGraph[String] = renames compose linkIon
+
+
+val b: LinkGraph[String] = LinkIon("Elef",Map(0 -> Some('z), 1 -> Some('w)))
+
+b.hypergraph
 linkIon2.hypergraph
+
+b === linkIon2
