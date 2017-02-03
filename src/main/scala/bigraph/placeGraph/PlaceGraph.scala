@@ -8,19 +8,10 @@ import Scalaz._
 /**
   * Created by eloipereira on 8/22/16.
   */
-trait PlaceGraph[+A] extends PlaceGraphFunctions{
+trait PlaceGraph[+A] extends PlaceGraphInstances{
   self =>
 
   def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]]
-
-  implicit def sh: Show[Site \/ Any] = new Show[Site \/ Any] {
-    override def shows(n: Site \/ Any): String = {
-      n match {
-        case -\/(s) => s.toString
-        case \/-(a) => a.toString
-      }
-    }
-  }
 
   def map[B](f: A => B):PlaceGraph[B] = {
     PlaceGraph(
@@ -32,19 +23,9 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
   lazy val placeOuterFace: Int = forest.size
 
-  def support[U >: A]: Set[U] = forest.flatten.flatMap(t => t.toStream).flatMap(o => o.toOption).toSet
-
   lazy val sites: Stream[Site] = forest.flatten.flatMap(t => t.flatten).filter(_.isLeft).flatMap(s => s.swap.toOption)
 
-  def drawPlaceGraph: String = drawRegions(forest)
-
-  private def drawRegions(rs: Stream[Stream[Tree[Site \/ Any]]]): String =
-    rs.length match{
-      case 0 => ""
-      case n => drawRegions(rs.init) + drawTrees(n-1,rs.last)
-    }
-
-  private def drawTrees(region: Int,ts: Stream[Tree[Site \/ Any]]): String = "\n#" + region + "[\n" + ts.map(_.drawTree).foldLeft("")(_+_) + "]\n"
+  def support[U >: A]: Set[U] = forest.flatten.flatMap(t => t.toStream).flatMap(o => o.toOption).toSet
 
   def juxtapose[U >: A]:PartialFunction[PlaceGraph[U],PlaceGraph[U]] = {
     case p:PlaceGraph[U] if self.support.intersect(p.support) == Set.empty =>
@@ -115,7 +96,18 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
     }
   }
 
-  def | [U >: A](p: PlaceGraph[U]) = merge(2) compose (self || p)
+  protected def leafI[A](i: Int): Tree[Site \/ A] = Leaf(-\/(Site(i)))
+  protected def leaf[A](n: => A): Tree[Site\/A] = Leaf(\/-(n))
+
+
+  protected def sitePerm(m: Int, n: Int): (Int) => Int = (j: Int) => {
+    if(j <= n-1)
+      m+j
+    else
+      j-n
+  }
+
+  def | [U >: A](p: PlaceGraph[U]) = Merge(2) compose (self || p)
 
   def || [U >: A](p: PlaceGraph[U]) = self juxtapose p
 
@@ -123,102 +115,59 @@ trait PlaceGraph[+A] extends PlaceGraphFunctions{
 
 }
 
-object PlaceGraph extends PlaceGraphFunctions {
+object PlaceGraph extends PlaceGraphInstances {
   def apply[A](s: Stream[Stream[Tree[Site \/ A]]]): PlaceGraph[A] = new PlaceGraph[A]{
     def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = s.asInstanceOf[Stream[Stream[Tree[Site \/ U]]]]
-    override def toString = "Interface: " + placeInnerFace + " -> " + placeOuterFace + "\n" + drawPlaceGraph
   }
   def unapply[A](pg: PlaceGraph[A]): Option[Stream[Stream[Tree[Site \/ A]]]] = Some(pg.forest)
 }
 
-case class PlaceIon[A](n: A) extends PlaceGraph[A] with PlaceGraphFunctions{
-  def forest[U >: A]:Stream[Stream[Tree[Site \/ U]]] = ion(n).forest
+case class PlaceIon[A](n: A) extends PlaceGraph[A] with PlaceGraphInstances{
+  def forest[U >: A]:Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(Node(\/-(n),Stream(leafI(0)))))
 }
 
-case class Atom[A](n:A) extends PlaceGraph[A]  with PlaceGraphFunctions{
-  def forest[U >: A]:Stream[Stream[Tree[Site \/ U]]] = atom(n).forest
+case class Atom[A](n:A) extends PlaceGraph[A]  with PlaceGraphInstances{
+  def forest[U >: A]:Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(leaf(n)))
 }
 
-case object PlaceUnit extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
-  def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = unit.forest
+case object PlaceUnit extends PlaceGraph[Nothing]  with PlaceGraphInstances{
+  def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream.empty)
 }
 
-case object Permute extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
-  def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = permute.forest
-}
-
-case class PermuteMN(m: Int, n:Int) extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
-  def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = permuteMN(m,n).forest
-}
-
-case object Join extends PlaceGraph[Nothing] with PlaceGraphFunctions{
-  def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = join.forest
-}
-
-case class PlaceId(n: Int) extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
-  def forest[U >: Nothing]:Stream[Stream[Tree[Site \/ U]]] = id(n).forest
-}
-
-trait PlaceGraphFunctions{
-  private def leaf0[A]: Tree[Site \/ A] = Leaf(-\/(Site(0)))
-  private def leaf1[A]: Tree[Site \/ A] = Leaf(-\/(Site(1)))
-  private def leafI[A](i: Int): Tree[Site \/ A] = Leaf(-\/(Site(i)))
-  private def leaf[A](n: => A): Tree[Site\/A] = Leaf(\/-(n))
-  private def nodeWithSite[A](n: => A): Tree[Site\/A] = Node(\/-(n),Stream(leaf0))
-
-  def id[A](m: Int): PlaceGraph[A] = {
-    m match {
-      case 0 => PlaceGraph(Stream.empty)
-      case 1 => PlaceGraph(Stream(Stream(leaf0)))
-      case _ => id(1) juxtapose id(m-1)
-    }
+case class Permute(m: Int, n:Int) extends PlaceGraph[Nothing]  with PlaceGraphInstances{
+  def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = {
+    (0 until(m+n)).foldLeft[Stream[Stream[Tree[Site \/ U]]]](
+      Stream[Stream[Tree[Site \/ U]]]()
+    )(
+      (ss: Stream[Stream[Tree[Site \/ U]]], i: Int) => ss ++ Stream[Stream[Tree[Site \/ U]]](Stream(leafI(sitePerm(m,n)(i))))
+    )
   }
+}
 
-  def merge[A](n: Int):PlaceGraph[A] = {
+case object Join extends PlaceGraph[Nothing] with PlaceGraphInstances{
+  def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(leafI[U](0),leafI[U](1)))
+}
+
+case class Merge(n: Int) extends PlaceGraph[Nothing] with PlaceGraphInstances{
+  def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = {
     n match {
-      case 0 => unit
-      case _ => join compose (merge(n-1) juxtapose id(1))
+      case 0 => PlaceUnit.forest
+      case _ => (Join compose (Merge(n-1) juxtapose PlaceId(1))).forest
     }
   }
+}
 
-  def unit[A]: PlaceGraph[A] = new PlaceGraph[A]{
-    def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream.empty)
-  }
-  def permute[A]: PlaceGraph[A] = new PlaceGraph[A]{
-    def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(leaf1[U]),Stream(leaf0[U]))
-  }
-  def permuteMN[A](m: Int, n: Int): PlaceGraph[A] = new PlaceGraph[A]{
-    def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = {
-      (0 until(m+n)).foldLeft[Stream[Stream[Tree[Site \/ U]]]](
-        Stream[Stream[Tree[Site \/ U]]]()
-      )(
-        (ss: Stream[Stream[Tree[Site \/ U]]], i: Int) => ss ++ Stream[Stream[Tree[Site \/ U]]](Stream(leafI(sitePerm(m,n)(i))))
-      )
+case class PlaceId(n: Int) extends PlaceGraph[Nothing]  with PlaceGraphInstances{
+  def forest[U >: Nothing]:Stream[Stream[Tree[Site \/ U]]] = {
+    n match {
+      case 0 => Stream.empty
+      case 1 => Stream(Stream(leafI(0)))
+      case _ => (PlaceId(1) juxtapose PlaceId(n-1)).forest
     }
   }
+}
 
-  private def prntPerm(m: Int, n: Int): (Int) => Int = (i: Int) => {
-    if(i <= m-1)
-      n+i
-    else
-      i-m
-  }
-  private def sitePerm(m: Int, n: Int): (Int) => Int = (j: Int) => {
-    if(j <= n-1)
-      m+j
-    else
-      j-n
-  }
-
-  def join[A]: PlaceGraph[A] = new PlaceGraph[A]{
-    def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(leaf0[U],leaf1[U]))
-  }
-  def atom[A](n: => A): PlaceGraph[A] = new PlaceGraph[A]{
-    def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(leaf(n)))
-  }
-  def ion[A](n: => A): PlaceGraph[A] = new PlaceGraph[A]{
-    def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(nodeWithSite(n)))
-  }
+trait PlaceGraphInstances{
 
   implicit def eitherEqual[A: Equal]: Equal[Site \/ A] = (x0: Site \/ A, x1: Site \/ A) => x0 === x1
 
@@ -266,10 +215,30 @@ trait PlaceGraphFunctions{
 
   implicit def joinEqual: Equal[Join.type] = (a1: Join.type, a2: Join.type) => placeGraphEqual[Nothing].equal(a1, a2)
 
-  implicit def permuteEqual: Equal[Permute.type] = (a1: Permute.type, a2: Permute.type) => placeGraphEqual[Nothing].equal(a1, a2)
+  implicit def permuteEqual: Equal[Permute] = (a1: Permute, a2: Permute) => placeGraphEqual[Nothing].equal(a1, a2)
 
   implicit def unitEqual: Equal[PlaceUnit.type] = (a1: PlaceUnit.type, a2: PlaceUnit.type) => placeGraphEqual[Nothing].equal(a1, a2)
 
   implicit def idEqual: Equal[PlaceId] = (a1: PlaceId, a2: PlaceId) => placeGraphEqual[Nothing].equal(a1, a2)
+
+  implicit def sh: Show[Site \/ Any] = new Show[Site \/ Any] {
+    override def shows(n: Site \/ Any): String = {
+      n match {
+        case -\/(s) => s.toString
+        case \/-(a) => a.toString
+      }
+    }
+  }
+
+  implicit def placeGraphShow[A: Show]: Show[PlaceGraph[A]] = Show.show(a => drawRegions(a.forest))
+
+  private def drawRegions(rs: Stream[Stream[Tree[Site \/ Any]]]): String =
+    rs.length match{
+      case 0 => ""
+      case n => drawRegions(rs.init) + drawTrees(n-1,rs.last)
+    }
+
+  private def drawTrees(region: Int,ts: Stream[Tree[Site \/ Any]]): String = "\n#" + region + "[\n" + ts.map(_.drawTree).foldLeft("")(_+_) + "]\n"
+
 }
 

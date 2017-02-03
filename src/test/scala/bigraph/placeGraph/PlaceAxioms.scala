@@ -11,7 +11,7 @@ import scalaz._, Scalaz._
   */
 class PlaceAxioms extends FunSuite{
   test("Place Axiom 1: "){
-    val a = Join compose Permute
+    val a = Join compose Permute(1,1)
     val b = Join
     assert(Equal[PlaceGraph[Int]].equal(a,b)) //FIX - should be Nothing and not Int
   }

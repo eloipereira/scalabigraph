@@ -6,4 +6,4 @@ import linkGraph._
 import PlaceGraph._
 import LinkGraph._
 
-PermuteMN(1,1).drawPlaceGraph
+PermuteMN(2,2).drawPlaceGraph
