@@ -147,6 +147,10 @@ case object Permute extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
   def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = permute.forest
 }
 
+case class PermuteMN(m: Int, n:Int) extends PlaceGraph[Nothing]  with PlaceGraphFunctions{
+  def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = permuteMN(m,n).forest
+}
+
 case object Join extends PlaceGraph[Nothing] with PlaceGraphFunctions{
   def forest[U >: Nothing]: Stream[Stream[Tree[Site \/ U]]] = join.forest
 }
@@ -158,6 +162,7 @@ case class PlaceId(n: Int) extends PlaceGraph[Nothing]  with PlaceGraphFunctions
 trait PlaceGraphFunctions{
   private def leaf0[A]: Tree[Site \/ A] = Leaf(-\/(Site(0)))
   private def leaf1[A]: Tree[Site \/ A] = Leaf(-\/(Site(1)))
+  private def leafI[A](i: Int): Tree[Site \/ A] = Leaf(-\/(Site(i)))
   private def leaf[A](n: => A): Tree[Site\/A] = Leaf(\/-(n))
   private def nodeWithSite[A](n: => A): Tree[Site\/A] = Node(\/-(n),Stream(leaf0))
 
@@ -182,6 +187,29 @@ trait PlaceGraphFunctions{
   def permute[A]: PlaceGraph[A] = new PlaceGraph[A]{
     def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(leaf1[U]),Stream(leaf0[U]))
   }
+  def permuteMN[A](m: Int, n: Int): PlaceGraph[A] = new PlaceGraph[A]{
+    def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = {
+      (0 until(m+n)).foldLeft[Stream[Stream[Tree[Site \/ U]]]](
+        Stream[Stream[Tree[Site \/ U]]]()
+      )(
+        (ss: Stream[Stream[Tree[Site \/ U]]], i: Int) => ss ++ Stream[Stream[Tree[Site \/ U]]](Stream(leafI(sitePerm(m,n)(i))))
+      )
+    }
+  }
+
+  private def prntPerm(m: Int, n: Int): (Int) => Int = (i: Int) => {
+    if(i <= m-1)
+      n+i
+    else
+      i-m
+  }
+  private def sitePerm(m: Int, n: Int): (Int) => Int = (j: Int) => {
+    if(j <= n-1)
+      m+j
+    else
+      j-n
+  }
+
   def join[A]: PlaceGraph[A] = new PlaceGraph[A]{
     def forest[U >: A]: Stream[Stream[Tree[Site \/ U]]] = Stream(Stream(leaf0[U],leaf1[U]))
   }

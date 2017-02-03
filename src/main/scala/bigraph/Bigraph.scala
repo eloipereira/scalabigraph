@@ -1,7 +1,7 @@
 package bigraph
 
 
-import scalaz.{\/, \/-}
+import scalaz._, Scalaz._
 import placeGraph._
 import linkGraph._
 import LinkGraph._
@@ -28,9 +28,9 @@ trait Bigraph[+A]{self =>
   def || [U >: A](b: Bigraph[U]) = Bigraph(self.placeGraph || b.placeGraph, self.linkGraph juxtaposeWithSharing b.linkGraph)
   def | [U >: A](b: Bigraph[U]) = {
     val bPar = self || b
-    (Bigraph(PlaceGraph.merge(2),LinkUnit) juxtapose Id(0,bPar.linkGraph.linkOuterFace.toStream)) compose bPar
+    (Bigraph(PlaceGraph.merge(2),LinkUnit) juxtapose BigraphId(0,bPar.linkGraph.linkOuterFace.toStream)) compose bPar
   }
-  def <> [U >: A](b: Bigraph[U]) = (self || Id(0,b.linkGraph.linkOuterFace.toStream)) compose b
+  def <> [U >: A](b: Bigraph[U]) = (self || BigraphId(0,b.linkGraph.linkOuterFace.toStream)) compose b
 }
 
 object Bigraph{
@@ -41,17 +41,12 @@ object Bigraph{
   def unapply[A](arg: Bigraph[A]): Option[(PlaceGraph[A],LinkGraph[A])] = Some((arg.placeGraph,arg.linkGraph))
 }
 
-case class Ion[A](node: A, names: Stream[Symbol]) extends Bigraph[A] {
+case class Ion[A](node: A, links: Map[Port,Option[OuterName]]) extends Bigraph[A] {
   def placeGraph: PlaceGraph[A] = PlaceIon(node)
-  def linkGraph: LinkGraph[A] = LinkGraph(hypergraph)
-  def hypergraph[U >: Nothing] =
-    names.foldLeft(Map(): Map[Option[Symbol] \/ NodePortPair[U], Option[Symbol]])(
-      (acc, n) =>
-        acc ++ Map(\/-((node.asInstanceOf[U],names.indexOf(n))) -> Some(n))
-    )
+  def linkGraph: LinkGraph[A] = LinkIon(node,links)
 }
 
-case class Id(i: Int, names: Stream[Symbol]) extends Bigraph[Nothing] {
+case class BigraphId(i: Int, names: Stream[Symbol]) extends Bigraph[Nothing] {
   def linkGraph: LinkGraph[Nothing] = LinkId(names)
   def placeGraph: PlaceGraph[Nothing] = PlaceId(i)
 }
@@ -60,4 +55,5 @@ case object Unit extends Bigraph[Nothing] {
   def linkGraph: LinkGraph[Nothing] = LinkUnit
   def placeGraph: PlaceGraph[Nothing] = PlaceUnit
 }
+
 
