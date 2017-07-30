@@ -1,7 +1,7 @@
 package bigraph.placeGraph
 
 import scalaz.Tree.{Leaf, Node}
-import scalaz.{-\/, Equal, Show, Tree, TreeLoc, \/, \/-}
+import scalaz.{-\/, Equal, Show, Tree, TreeLoc, \/, \/-, Monoid}
 import scalaz._
 import Scalaz._
 
@@ -243,5 +243,14 @@ trait PlaceGraphInstances extends PlaceGraphTypeAliases{
     }
 
   private def drawTrees(region: Int,ts: Region[Any]): String = "\n#" + region + "[\n" + ts.map(_.drawTree).foldLeft("")(_+_) + "]\n"
+
+  implicit val placeGraphMonoid: Monoid[PlaceGraph[Any]] = new Monoid[PlaceGraph[Any]]{
+    def zero: PlaceGraph[Any] = PlaceUnit
+    def append(p0: PlaceGraph[Any], p1: => PlaceGraph[Any]) = p0 || p1
+  }
+
+  implicit val placeGraphFunctor = new Functor[PlaceGraph]{
+    def map[A,B](p: PlaceGraph[A])(f: A => B):PlaceGraph[B] = p.map(f)
+  }
 
 }
