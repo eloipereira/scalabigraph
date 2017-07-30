@@ -78,7 +78,7 @@ trait LinkGraph[+A] {
 
 }
 
-object LinkGraph extends LinkGraphFunctions{
+object LinkGraph extends LinkGraphInstances{
   def apply[A](h: Map[Option[InnerName] \/ NodePortPair[A], Option[OuterName]]): LinkGraph[A] = new LinkGraph[A] {
     def hypergraph[U >: A]: Map[Option[InnerName] \/ NodePortPair[U], Option[OuterName]] = h.asInstanceOf[Map[Option[InnerName] \/ NodePortPair[U], Option[OuterName]]]
   }
@@ -92,60 +92,43 @@ object LinkGraph extends LinkGraphFunctions{
 }
 
 
-case class Closure(innerName: InnerName) extends LinkGraph[Nothing] with LinkGraphFunctions {
-  def hypergraph[U >: Nothing] = closure(innerName).hypergraph
+case class Closure(innerName: InnerName) extends LinkGraph[Nothing] with LinkGraphInstances {
+  def hypergraph[U >: Nothing] = Map(-\/(Some(innerName)) -> None)
 }
 
-case class Substitution(innerNames: Stream[InnerName], outerName: OuterName) extends LinkGraph[Nothing] with LinkGraphFunctions {
-  def hypergraph[U >: Nothing] = substitution(innerNames, outerName).hypergraph
+case class Substitution(innerNames: Stream[InnerName], outerName: OuterName) extends LinkGraph[Nothing] with LinkGraphInstances {
+  def hypergraph[U >: Nothing] = innerNames.size match {
+    case 0 => Map(-\/(None) -> Some(outerName))
+    case 1 => Map(-\/(Some(innerNames.head)) -> Some(outerName))
+    case n => Map(-\/(Some(innerNames.head)) -> Some(outerName)) ++ Substitution(innerNames.tail, outerName).hypergraph
+  }
 }
 
-case class Renaming(rename: Map[InnerName,OuterName]) extends LinkGraph[Nothing] with LinkGraphFunctions {
+case class Renaming(rename: Map[InnerName,OuterName]) extends LinkGraph[Nothing] with LinkGraphInstances {
   def hypergraph[U >: Nothing]: Map[Option[InnerName] \/ NodePortPair[U], Option[OuterName]] = for {
     r <- rename
   } yield (-\/(Some(r._1)) -> Some(r._2))
 }
 
-case class LinkId(names: Stream[InnerName]) extends LinkGraph[Nothing] with LinkGraphFunctions {
-  def hypergraph[U >: Nothing] = id(names).hypergraph
+case class LinkId(names: Stream[InnerName]) extends LinkGraph[Nothing] with LinkGraphInstances {
+  def hypergraph[U >: Nothing] = names match {
+    case Stream() => Map(-\/(None) -> None)
+    case ns => ns.foldLeft(Map(): Map[Option[Symbol] \/ NodePortPair[U], Option[Symbol]])(
+      (acc, n) => acc ++ Map(-\/(Some(n)) -> Some(n)))
+  }
 }
 
-case class LinkIon[A](node: A, links: Map[Port,Option[OuterName]]) extends LinkGraph[A] with LinkGraphFunctions {
+case class LinkIon[A](node: A, links: Map[Port,Option[OuterName]]) extends LinkGraph[A] with LinkGraphInstances {
   def hypergraph[U >: A]: Map[Option[InnerName] \/ (U, Port), Option[OuterName]] = for{
     l <- links
   } yield (\/-(node,l._1) -> l._2)
 }
 
-case object LinkUnit extends LinkGraph[Nothing] with LinkGraphFunctions {
+case object LinkUnit extends LinkGraph[Nothing] with LinkGraphInstances {
   def hypergraph[U >: Nothing] = Map()
 }
 
-
-
-trait LinkGraphFunctions {
-  def substitution(innerNames: Stream[Symbol], outerName: Symbol): LinkGraph[Nothing] =
-    new LinkGraph[Nothing] {
-      def hypergraph[U >: Nothing] = innerNames.size match {
-        case 0 => Map(-\/(None) -> Some(outerName))
-        case 1 => Map(-\/(Some(innerNames.head)) -> Some(outerName))
-        case n => Map(-\/(Some(innerNames.head)) -> Some(outerName)) ++ substitution(innerNames.tail, outerName).hypergraph[U]
-      }
-    }
-
-  def closure(innerName: Symbol): LinkGraph[Nothing] =
-    new LinkGraph[Nothing] {
-      def hypergraph[U >: Nothing] = Map(-\/(Some(innerName)) -> None)
-    }
-
-  def id(names: Stream[Symbol]): LinkGraph[Nothing] =
-    new LinkGraph[Nothing]{
-      def hypergraph[U >: Nothing] = names match {
-        case Stream() => Map(-\/(None) -> None)
-        case ns => ns.foldLeft(Map(): Map[Option[Symbol] \/ NodePortPair[U], Option[Symbol]])(
-          (acc, n) => acc ++ Map(-\/(Some(n)) -> Some(n)))
-      }
-    }
-
+trait LinkGraphInstances {
 
   implicit def linkGraphEqual[A: Equal]: Equal[LinkGraph[A]] = Equal.equalBy(_.hypergraph)
 
@@ -161,7 +144,6 @@ trait LinkGraphFunctions {
     }
   }
 
-
   implicit def portEqual: Equal[Port] = (a1: Port, a2: Port) => Equal[Int].equal(a1,a2)
 
   implicit def symbolEqual: Equal[Symbol] = (a1: Symbol, a2: Symbol) => a1.name === a2.name
@@ -173,10 +155,12 @@ trait LinkGraphFunctions {
   implicit def keyEqual[A: Equal]: Equal[Option[InnerName] \/ NodePortPair[A]] =
     (a1: Option[InnerName] \/ NodePortPair[A], a2: Option[InnerName] \/ NodePortPair[A]) => a1 === a2
 
-
   implicit def substitutionEqual: Equal[Substitution] = (a1: Substitution, a2: Substitution) => linkGraphEqual[Nothing].equal(a1, a2)
+
   implicit def closureEqual: Equal[Closure] = (a1: Closure, a2: Closure) => linkGraphEqual[Nothing].equal(a1, a2)
+
   implicit def idEqual: Equal[LinkId] = (a1: LinkId, a2: LinkId) => linkGraphEqual[Nothing].equal(a1, a2)
+
   implicit def linkIonEqual[A: Equal]: Equal[LinkIon[A]] = (a1: LinkIon[A], a2: LinkIon[A]) => linkGraphEqual[A].equal(a1, a2)
 
   implicit def LinkGraphShows[A]: Show[LinkGraph[A]] = Show.shows{ //TODO - Still incomplete

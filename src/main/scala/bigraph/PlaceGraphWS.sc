@@ -6,4 +6,4 @@ import linkGraph._
 import PlaceGraph._
 import LinkGraph._
 
-PermuteMN(2,2).drawPlaceGraph
+val b = PlaceIon(1) || PlaceIon(2)
