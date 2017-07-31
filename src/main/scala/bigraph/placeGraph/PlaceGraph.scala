@@ -2,6 +2,7 @@ package bigraph.placeGraph
 
 import scalaz.Tree.{Leaf, Node}
 import scalaz.{-\/, Equal, Show, Tree, TreeLoc, \/, \/-, Monoid}
+import scalaz.std._
 import scalaz._
 import Scalaz._
 
@@ -13,10 +14,11 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
 
   def forest[U >: A]: Stream[Region[U]]
 
-  def map[B](f: A => B):PlaceGraph[B] = {
-    PlaceGraph(
-      forest.map((_:Region[A]).map(_.map(_.map(f))))
-    )
+  def map[B](f: A => B):PlaceGraph[B] = new PlaceGraph[B]{
+    def forest[B]: Stream[Region[B]] = this.forest.map(
+                                              (_:Region[A]).map(
+                                                  (_:Tree[Site \/ A]).map(
+                                                    (_: Site \/ A).map(f)))).asInstanceOf[Stream[Region[B]]]// I'm sorry, I also hate casting :(
   }
 
   lazy val placeInnerFace: Int = sites.size
@@ -39,7 +41,9 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
           p.forest
         }
       }
-      PlaceGraph(rs)
+      new PlaceGraph[U]{
+        def forest[U1] = rs.asInstanceOf[Stream[Region[U1]]]// I'm sorry, I also hate casting :(
+      }
   }
 
   private def incrementSites[U >: A](p: PlaceGraph[U],inc: Int): PlaceGraph[U] = {
@@ -54,7 +58,9 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
             }
           )
         )
-        PlaceGraph(rs)
+        new PlaceGraph[U]{
+          def forest[U1] = rs.asInstanceOf[Stream[Region[U1]]]// I'm sorry, I also hate casting :( 
+        }
     }
   }
 
@@ -72,7 +78,10 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
           }
         )
       )
-      incrementSites(PlaceGraph(f),-self.placeInnerFace)
+      val p0 = new PlaceGraph[U]{
+        def forest[U1] = f.asInstanceOf[Stream[Region[U1]]]
+      }
+      incrementSites(p0,-self.placeInnerFace)
   }
 
   private def insertRegionInLocation[U >: A](loc: TreeLoc[Site \/ U],rg0: Region[U]):TreeLoc[Site \/ U] = {
@@ -116,10 +125,11 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
 }
 
 object PlaceGraph extends PlaceGraphInstances with PlaceGraphTypeAliases{
-  def apply[A](s: Stream[Region[A]]): PlaceGraph[A] = new PlaceGraph[A]{
-    def forest[U >: A]: Stream[Region[U]] = s.asInstanceOf[Stream[Region[U]]]
-  }
-  def unapply[A](pg: PlaceGraph[A]): Option[Stream[Region[A]]] = Some(pg.forest)
+
+  // def apply[A](s: Stream[Region[A]]): PlaceGraph[A] = new PlaceGraph[A]{
+  //   def forest[U >: A]: Stream[Region[U]] = s.asInstanceOf[Stream[Region[U]]]
+  // }
+  // def unapply[A](pg: PlaceGraph[A]): Option[Stream[Region[A]]] = Some(pg.forest)
 }
 
 case class PlaceIon[A](n: A) extends PlaceGraph[A] with PlaceGraphInstances with PlaceGraphTypeAliases{

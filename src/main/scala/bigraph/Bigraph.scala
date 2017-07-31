@@ -15,7 +15,6 @@ trait Bigraph[+A]{self =>
   def linkGraph: LinkGraph[A]
   lazy val innerFace: (Int, Set[Symbol]) = (placeGraph.placeInnerFace,linkGraph.linkInnerFace)
   lazy val outerFace: (Int, Set[Symbol]) = (placeGraph.placeOuterFace,linkGraph.linkOuterFace)
-
   def compose[U >: A]: PartialFunction[Bigraph[U], Bigraph[U]] = {
     case b: Bigraph[U] if b.outerFace == self.innerFace =>
       Bigraph(self.placeGraph compose b.placeGraph, self.linkGraph compose b.linkGraph)
@@ -55,5 +54,3 @@ case object Unit extends Bigraph[Nothing] {
   def linkGraph: LinkGraph[Nothing] = LinkUnit
   def placeGraph: PlaceGraph[Nothing] = PlaceUnit
 }
-
-
