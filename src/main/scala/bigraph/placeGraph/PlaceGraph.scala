@@ -59,7 +59,7 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
           )
         )
         new PlaceGraph[U]{
-          def forest[U1] = rs.asInstanceOf[Stream[Region[U1]]]// I'm sorry, I also hate casting :( 
+          def forest[U1] = rs.asInstanceOf[Stream[Region[U1]]]// I'm sorry, I also hate casting :(
         }
     }
   }
@@ -124,7 +124,7 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
 
 }
 
-object PlaceGraph extends PlaceGraphInstances with PlaceGraphTypeAliases{
+object PlaceGraph extends PlaceGraphInstances with PlaceGraphTypeAliases with PlaceGraphParsers{
 
   // def apply[A](s: Stream[Region[A]]): PlaceGraph[A] = new PlaceGraph[A]{
   //   def forest[U >: A]: Stream[Region[U]] = s.asInstanceOf[Stream[Region[U]]]
@@ -261,6 +261,51 @@ trait PlaceGraphInstances extends PlaceGraphTypeAliases{
 
   implicit val placeGraphFunctor = new Functor[PlaceGraph]{
     def map[A,B](p: PlaceGraph[A])(f: A => B):PlaceGraph[B] = p.map(f)
+  }
+
+}
+
+trait PlaceGraphParsers extends PlaceGraphTypeAliases{
+
+  def placeGraphToTerm[A](p: PlaceGraph[A]): String = forestToTerm(p.forest)
+
+  def forestToTerm[A](f: Stream[Region[A]]):String = {
+    f match {
+      case Stream() => ""
+      case Stream(r) => regionToTerm(r)
+      case r #:: rs => regionToTerm(r) + " || " + forestToTerm(rs)
+  }
+  }
+
+  def regionToTerm[A](r: Region[A]): String = {
+    r match {
+      case Stream() => ""
+      case Stream(t) => treeToTerm(t)
+      case t #:: ts => treeToTerm(t) + " | " + regionToTerm(ts)
+    }
+  }
+
+  def treeToTerm[A](t: Tree[Site \/ A]): String = {
+    val loc = t.loc
+    loc.firstChild match {
+      case None => siteNodeToTerm(loc.getLabel)
+      case Some(i) => {
+        val childTerms = if(t.subForest.size > 1){
+          "(" + regionToTerm(t.subForest) + ")"
+        }
+        else{
+          regionToTerm(t.subForest)
+        }
+        siteNodeToTerm(loc.getLabel) + "." + childTerms
+      }
+    }
+  }
+  def siteNodeToTerm[A](n: Site \/ A): String = {
+    n match {
+      case -\/(s) => s.toString
+      case \/-(n) => n.toString
+    }
+
   }
 
 }
