@@ -223,7 +223,7 @@ trait PlaceGraphInstances extends PlaceGraphTypeAliases{
 
   implicit def placeGraphEqual[A: Equal]: Equal[PlaceGraph[A]] = Equal.equalBy(_.forest)
 
-  implicit def ionEqual[A: Equal]: Equal[PlaceIon[A]] = (a1: PlaceIon[A], a2: PlaceIon[A]) => placeGraphEqual[A].equal(a1, a2)
+  implicit def placeIonEqual[A: Equal]: Equal[PlaceIon[A]] = (a1: PlaceIon[A], a2: PlaceIon[A]) => placeGraphEqual[A].equal(a1, a2)
 
   implicit def atomEqual[A: Equal]: Equal[Atom[A]] = (a1: Atom[A], a2: Atom[A]) => placeGraphEqual[A].equal(a1, a2)
 
@@ -231,9 +231,9 @@ trait PlaceGraphInstances extends PlaceGraphTypeAliases{
 
   implicit def permuteEqual: Equal[Permute] = (a1: Permute, a2: Permute) => placeGraphEqual[Nothing].equal(a1, a2)
 
-  implicit def unitEqual: Equal[PlaceUnit.type] = (a1: PlaceUnit.type, a2: PlaceUnit.type) => placeGraphEqual[Nothing].equal(a1, a2)
+  implicit def placeUnitEqual: Equal[PlaceUnit.type] = (a1: PlaceUnit.type, a2: PlaceUnit.type) => true
 
-  implicit def idEqual: Equal[PlaceId] = (a1: PlaceId, a2: PlaceId) => placeGraphEqual[Nothing].equal(a1, a2)
+  implicit def placeIdEqual: Equal[PlaceId] = (a1: PlaceId, a2: PlaceId) => placeGraphEqual[Nothing].equal(a1, a2)
 
   implicit def sh: Show[Site \/ Any] = new Show[Site \/ Any] {
     override def shows(n: Site \/ Any): String = {

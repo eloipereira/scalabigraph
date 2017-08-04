@@ -144,6 +144,8 @@ trait LinkGraphInstances {
     }
   }
 
+  implicit def linkUnitEqual: Equal[LinkUnit.type] = (u0: LinkUnit.type, u1: LinkUnit.type) => true
+
   implicit def portEqual: Equal[Port] = (a1: Port, a2: Port) => Equal[Int].equal(a1,a2)
 
   implicit def symbolEqual: Equal[Symbol] = (a1: Symbol, a2: Symbol) => a1.name === a2.name
@@ -159,7 +161,7 @@ trait LinkGraphInstances {
 
   implicit def closureEqual: Equal[Closure] = (a1: Closure, a2: Closure) => linkGraphEqual[Nothing].equal(a1, a2)
 
-  implicit def idEqual: Equal[LinkId] = (a1: LinkId, a2: LinkId) => linkGraphEqual[Nothing].equal(a1, a2)
+  implicit def linkIdEqual: Equal[LinkId] = (a1: LinkId, a2: LinkId) => linkGraphEqual[Nothing].equal(a1, a2)
 
   implicit def linkIonEqual[A: Equal]: Equal[LinkIon[A]] = (a1: LinkIon[A], a2: LinkIon[A]) => linkGraphEqual[A].equal(a1, a2)
 
