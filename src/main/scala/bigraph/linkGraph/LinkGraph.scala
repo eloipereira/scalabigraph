@@ -27,6 +27,13 @@ trait LinkGraph[+A] {
 
   def linkOuterFace[U >: A]: Set[OuterName] = hypergraph[U].values.toSet.flatten
 
+  def getNamesConnectedTo[U >: A](n: U): List[Option[OuterName]] =
+    for{
+      p <- ports.toList
+      if (p._1 == n)
+    } yield hypergraph(\/-(p))
+
+
   def compose[U >: A]: PartialFunction[LinkGraph[U], LinkGraph[U]] = {
     case l: LinkGraph[U]
       if self.linkInnerFace == l.linkOuterFace =>

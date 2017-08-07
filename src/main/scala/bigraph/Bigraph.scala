@@ -6,7 +6,6 @@ import placeGraph._
 import linkGraph._
 import LinkGraph._
 
-
 /**
   * Created by eloipereira on 8/18/16.
   */
@@ -51,13 +50,7 @@ trait Bigraph[+A]{self =>
 
 }
 
-object Bigraph extends BigraphInstances{
-  // def apply[A](p: PlaceGraph[A], l: LinkGraph[A]): Bigraph[A] with Object = new Bigraph[A]{
-  //   override def placeGraph = p
-  //   override def linkGraph = l
-  // }
-  // def unapply[A](arg: Bigraph[A]): Option[(PlaceGraph[A],LinkGraph[A])] = Some((arg.placeGraph,arg.linkGraph))
-}
+object Bigraph extends BigraphInstances
 
 case class Ion[A](node: A, links: Map[Port,Option[OuterName]]) extends Bigraph[A] {
   def placeGraph: PlaceGraph[A] = PlaceIon(node)
@@ -79,4 +72,5 @@ trait BigraphInstances extends PlaceGraphInstances with LinkGraphInstances{
   implicit def ionEqual[A: Equal]: Equal[Ion[A]] = (i0: Ion[A], i1: Ion[A]) => bigraphEqual[A].equal(i0,i1)
   implicit def idEqual: Equal[Id] = (i0: Id, i1: Id) => bigraphEqual[Nothing].equal(i0,i1)
   implicit def unitEqual: Equal[Unit.type] = (u0: Unit.type, u1: Unit.type) => true
+  implicit def bigraphShow[A: Show]: Show[Bigraph[A]] = Show.show(b => PlaceGraph.placeGraphToTerm(b.placeGraph)(b.linkGraph))
 }

@@ -5,6 +5,7 @@ import scalaz.{-\/, Equal, Show, Tree, TreeLoc, \/, \/-, Monoid}
 import scalaz.std._
 import scalaz._
 import Scalaz._
+import bigraph.linkGraph._
 
 /**
   * Created by eloipereira on 8/22/16.
@@ -244,15 +245,7 @@ trait PlaceGraphInstances extends PlaceGraphTypeAliases{
     }
   }
 
-  implicit def placeGraphShow[A: Show]: Show[PlaceGraph[A]] = Show.show(a => drawRegions(a.forest))
-
-  private def drawRegions(rs: Stream[Region[Any]]): String =
-    rs.length match{
-      case 0 => ""
-      case n => drawRegions(rs.init) + drawTrees(n-1,rs.last)
-    }
-
-  private def drawTrees(region: Int,ts: Region[Any]): String = "\n#" + region + "[\n" + ts.map(_.drawTree).foldLeft("")(_+_) + "]\n"
+  implicit def placeGraphShow[A: Show]: Show[PlaceGraph[A]] = Show.show(a => PlaceGraph.placeGraphToTerm(a)(LinkUnit))
 
   implicit val placeGraphMonoid: Monoid[PlaceGraph[Any]] = new Monoid[PlaceGraph[Any]]{
     def zero: PlaceGraph[Any] = PlaceUnit
@@ -265,11 +258,11 @@ trait PlaceGraphInstances extends PlaceGraphTypeAliases{
 
 }
 
-trait PlaceGraphParsers extends PlaceGraphTypeAliases{
+trait PlaceGraphParsers extends PlaceGraphInstances with PlaceGraphTypeAliases{
 
-  def placeGraphToTerm[A](p: PlaceGraph[A]): String = forestToTerm(p.forest)
+  def placeGraphToTerm[A](p: PlaceGraph[A])(implicit linkGraph: LinkGraph[A]): String = forestToTerm(p.forest)
 
-  def forestToTerm[A](f: Stream[Region[A]]):String = {
+  def forestToTerm[A](f: Stream[Region[A]])(implicit linkGraph: LinkGraph[A]):String = {
     f match {
       case Stream() => ""
       case Stream(r) => regionToTerm(r)
@@ -277,7 +270,7 @@ trait PlaceGraphParsers extends PlaceGraphTypeAliases{
   }
   }
 
-  def regionToTerm[A](r: Region[A]): String = {
+  def regionToTerm[A](r: Region[A])(implicit linkGraph: LinkGraph[A]): String = {
     r match {
       case Stream() => ""
       case Stream(t) => treeToTerm(t)
@@ -285,7 +278,7 @@ trait PlaceGraphParsers extends PlaceGraphTypeAliases{
     }
   }
 
-  def treeToTerm[A](t: Tree[Site \/ A]): String = {
+  def treeToTerm[A](t: Tree[Site \/ A])(implicit linkGraph: LinkGraph[A]): String = {
     val loc = t.loc
     loc.firstChild match {
       case None => siteNodeToTerm(loc.getLabel)
@@ -300,12 +293,33 @@ trait PlaceGraphParsers extends PlaceGraphTypeAliases{
       }
     }
   }
-  def siteNodeToTerm[A](n: Site \/ A): String = {
+  def siteNodeToTerm[A](n: Site \/ A)(implicit linkGraph: LinkGraph[A]): String = {
     n match {
       case -\/(s) => s.toString
-      case \/-(n) => n.toString
+      case \/-(n) => {
+        val links = linkGraph.getNamesConnectedTo(n)
+        val linksString: String =
+          if(links.empty)
+            ""
+          else {
+            links.map {
+              case None => "-"
+              case Some(a) => a.name
+            }.mkString(",")
+          }
+        n.toString ++ "[" ++ linksString ++ "]"
+      }
+    }
+  }
+
+  def drawPlaceGraph[A: Show](p: PlaceGraph[A]) = drawRegions(p.forest)
+
+  def drawRegions(rs: Stream[Region[Any]]): String =
+    rs.length match{
+      case 0 => ""
+      case n => drawRegions(rs.init) + drawTrees(n-1,rs.last)
     }
 
-  }
+  def drawTrees(region: Int,ts: Region[Any]): String = "\n#" + region + "[\n" + ts.map(_.drawTree).foldLeft("")(_+_) + "]\n"
 
 }
