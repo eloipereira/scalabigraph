@@ -17,6 +17,6 @@ object Example0 extends App{
     val p2: PlaceGraph[String] = PlaceIon("Hello") || PlaceIon("World")
     p2.println
 
-    val b0: Bigraph[String] = Ion("Hello", Map(0 -> Some('x), 1 -> None, 2 -> Some('y)))
+    val b0: Bigraph[String] = Ion("Hello", Stream(Some('x), None, Some('y)))
     b0.println
 }

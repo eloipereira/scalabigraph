@@ -19,6 +19,14 @@ trait LinkGraph[+A] {
     if k.isLeft
   } yield j
 
+  def map[B](f: A => B):LinkGraph[B] = new LinkGraph[B]{
+    def hypergraph[B]: Map[Option[InnerName] \/ NodePortPair[B], Option[OuterName]] =  self.hypergraph.mapKeys(
+        _.map{
+          case np: NodePortPair[A] => (f(np._1).asInstanceOf[B],np._2) //TODO - find a way to remove casting
+        }
+    )
+  }
+
   def ports[U >: A]: Set[NodePortPair[U]] = for{
     k: \/[Option[Symbol], NodePortPair[U]] <- hypergraph[U].keySet
     i: NodePortPair[U] <- k.toOption
@@ -125,9 +133,10 @@ case class LinkId(names: Stream[InnerName]) extends LinkGraph[Nothing] with Link
   }
 }
 
-case class LinkIon[A](node: A, links: Map[Port,Option[OuterName]]) extends LinkGraph[A] with LinkGraphInstances {
+case class LinkIon[A](node: A, links: Stream[Option[OuterName]]) extends LinkGraph[A] with LinkGraphInstances {
+  val linksMap: Map[Port,Option[OuterName]] = links.indices.foldLeft(Map[Port,Option[OuterName]]())((m,i) => m + (i -> links(i)))
   def hypergraph[U >: A]: Map[Option[InnerName] \/ (U, Port), Option[OuterName]] = for{
-    l <- links
+    l <- linksMap
   } yield (\/-(node,l._1) -> l._2)
 }
 
@@ -195,7 +204,7 @@ trait LinkGraphInstances {
         nsStr + "/" + nsStr
       }
     case LinkIon(n,ls) =>
-      val ns: Stream[Symbol] = ls.values.toStream.flatten
+      val ns: Stream[Symbol] = ls.flatten
       n.toString + "[" + ns.head.name + ns.tail.foldLeft("")((s,sym)=> s + "," + sym.name) + "]"
   }
 }

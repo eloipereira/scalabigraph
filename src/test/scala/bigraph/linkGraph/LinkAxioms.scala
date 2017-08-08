@@ -31,8 +31,8 @@ class LinkAxioms extends FunSuite{
     assert(Equal[LinkGraph[Int]].equal(a,b)) //FIX - should be Nothing and not Int
   }
   test("Node Axiom: "){
-    val a = Renaming(Map('x -> 'z, 'y -> 'w)) compose LinkIon("Elef",Map(0 -> Some('x), 1 -> Some('y)))
-    val b = LinkIon("Elef",Map(0 -> Some('z), 1 -> Some('w)))
+    val a = Renaming(Map('x -> 'z, 'y -> 'w)) compose LinkIon("Elef",Stream(Some('x), Some('y)))
+    val b = LinkIon("Elef",Stream(Some('z), Some('w)))
     assert(Equal[LinkGraph[String]].equal(a,b))
   }
 }

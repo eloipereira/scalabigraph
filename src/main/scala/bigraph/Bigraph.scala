@@ -48,11 +48,15 @@ trait Bigraph[+A]{self =>
 
   def <> [U >: A](b: Bigraph[U]) = (self || Id(0,b.linkGraph.linkOuterFace.toStream)) compose b
 
+  def map[B](f: A => B):Bigraph[B] = new Bigraph[B]{
+    override def placeGraph = self.placeGraph.map(f)
+    override def linkGraph = self.linkGraph.map(f)
+  }
 }
 
 object Bigraph extends BigraphInstances
 
-case class Ion[A](node: A, links: Map[Port,Option[OuterName]]) extends Bigraph[A] {
+case class Ion[A](node: A, links: Stream[Option[OuterName]]) extends Bigraph[A] {
   def placeGraph: PlaceGraph[A] = PlaceIon(node)
   def linkGraph: LinkGraph[A] = LinkIon(node,links)
 }
@@ -73,4 +77,11 @@ trait BigraphInstances extends PlaceGraphInstances with LinkGraphInstances{
   implicit def idEqual: Equal[Id] = (i0: Id, i1: Id) => bigraphEqual[Nothing].equal(i0,i1)
   implicit def unitEqual: Equal[Unit.type] = (u0: Unit.type, u1: Unit.type) => true
   implicit def bigraphShow[A: Show]: Show[Bigraph[A]] = Show.show(b => PlaceGraph.placeGraphToTerm(b.placeGraph)(b.linkGraph))
+  implicit val bigraphMonoid: Monoid[Bigraph[Any]] = new Monoid[Bigraph[Any]]{
+    def zero: Bigraph[Any] = Unit
+    def append(b0: Bigraph[Any], b1: => Bigraph[Any]) = b0 || b1
+  }
+  implicit val bigraphFunctor = new Functor[Bigraph]{
+    def map[A,B](b: Bigraph[A])(f: A => B):Bigraph[B] = b.map(f)
+  }
 }

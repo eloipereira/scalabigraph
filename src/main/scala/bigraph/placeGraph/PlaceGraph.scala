@@ -19,7 +19,7 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
     def forest[B]: Stream[Region[B]] = this.forest.map(
                                               (_:Region[A]).map(
                                                   (_:Tree[Site \/ A]).map(
-                                                    (_: Site \/ A).map(f)))).asInstanceOf[Stream[Region[B]]]// I'm sorry, I also hate casting :(
+                                                    (_: Site \/ A).map(f)))).asInstanceOf[Stream[Region[B]]]////TODO - find a way to remove casting. I'm sorry, I also hate casting :(
   }
 
   lazy val placeInnerFace: Int = sites.size
@@ -43,7 +43,7 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
         }
       }
       new PlaceGraph[U]{
-        def forest[U1] = rs.asInstanceOf[Stream[Region[U1]]]// I'm sorry, I also hate casting :(
+        def forest[U1] = rs.asInstanceOf[Stream[Region[U1]]]////TODO - find a way to remove casting. I'm sorry, I also hate casting :(
       }
   }
 
@@ -60,7 +60,7 @@ trait PlaceGraph[+A] extends PlaceGraphInstances with PlaceGraphTypeAliases{
           )
         )
         new PlaceGraph[U]{
-          def forest[U1] = rs.asInstanceOf[Stream[Region[U1]]]// I'm sorry, I also hate casting :(
+          def forest[U1] = rs.asInstanceOf[Stream[Region[U1]]]////TODO - find a way to remove casting. I'm sorry, I also hate casting :(
         }
     }
   }
